@@ -71,10 +71,10 @@ enum OperationCmd {
         #[arg(allow_hyphen_values = true)]
         values: Vec<String>,
     },
-    /// List all values for a key
+    /// List all values (or values for a specific key if provided)
     List {
-        /// Key to list values for
-        key: String,
+        /// Key to list values for (optional - if not provided, lists all keys and values)
+        key: Option<String>,
     },
 }
 
@@ -141,7 +141,11 @@ fn execute_operation(
             operations::execute(config, Operation::Del, section, &key, values)?;
         }
         OperationCmd::List { key } => {
-            operations::execute(config, Operation::List, section, &key, vec![])?;
+            if let Some(k) = key {
+                operations::execute(config, Operation::List, section, &k, vec![])?;
+            } else {
+                operations::execute(config, Operation::ListAll, section, "", vec![])?;
+            }
         }
     }
     Ok(())

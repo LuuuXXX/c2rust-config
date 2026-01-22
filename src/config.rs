@@ -109,6 +109,30 @@ impl Config {
         Ok(results)
     }
 
+    /// List all keys and values in a section
+    pub fn list_all(&self, section: &str) -> Result<Vec<(String, Vec<String>)>> {
+        let table = self.get_table(section)?;
+        
+        let mut results = Vec::new();
+        for (key, value) in table.iter() {
+            let mut values = Vec::new();
+            if let Some(array) = value.as_array() {
+                for item in array.iter() {
+                    if let Some(s) = item.as_str() {
+                        values.push(s.to_string());
+                    }
+                }
+            } else if let Some(s) = value.as_str() {
+                values.push(s.to_string());
+            }
+            if !values.is_empty() {
+                results.push((key.clone(), values));
+            }
+        }
+
+        Ok(results)
+    }
+
     /// Set a key to one or more values
     pub fn set(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
         let table = self.get_table_mut(section, true)?;

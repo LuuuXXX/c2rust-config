@@ -516,3 +516,91 @@ fn test_build_files_exceeds_options_warning() {
     assert!(stderr.contains("build.files.2"));
     assert!(stderr.contains("build.options"));
 }
+
+#[test]
+fn test_list_all_empty_section() {
+    let temp_dir = setup_test_env();
+    
+    // List all in empty global section
+    get_cmd(&temp_dir)
+        .args(&["global", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty());
+}
+
+#[test]
+fn test_list_all_global() {
+    let temp_dir = setup_test_env();
+    
+    // Set some global values
+    get_cmd(&temp_dir)
+        .args(&["global", "set", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    // List all global configuration
+    get_cmd(&temp_dir)
+        .args(&["global", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("compiler = gcc"));
+}
+
+#[test]
+fn test_list_all_with_arrays() {
+    let temp_dir = setup_test_env();
+    
+    // Set single value
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    // Add array values
+    get_cmd(&temp_dir)
+        .args(&["make", "add", "build.files.0", "main.c", "test.c"])
+        .assert()
+        .success();
+    
+    // List all - should show both single value and array
+    let output = get_cmd(&temp_dir)
+        .args(&["make", "list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert!(stdout.contains("build.dir = build"));
+    assert!(stdout.contains("build.files.0 = ["));
+    assert!(stdout.contains("main.c"));
+    assert!(stdout.contains("test.c"));
+}
+
+#[test]
+fn test_list_specific_key_still_works() {
+    let temp_dir = setup_test_env();
+    
+    // Add array values
+    get_cmd(&temp_dir)
+        .args(&["make", "add", "build.options", "-I../include", "-DDEBUG"])
+        .assert()
+        .success();
+    
+    // List specific key (backward compatibility)
+    let output = get_cmd(&temp_dir)
+        .args(&["make", "list", "build.options"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert!(stdout.contains("-I../include"));
+    assert!(stdout.contains("-DDEBUG"));
+    // Should NOT contain "build.options =" (that's list_all format)
+    assert!(!stdout.contains("build.options ="));
+}
