@@ -34,7 +34,7 @@ fn test_no_c2rust_directory() {
     let temp_dir = TempDir::new().unwrap();
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
-    cmd.args(&["make", "list"]);
+    cmd.args(&["config", "--make", "--list"]);
     
     cmd.assert()
         .failure()
@@ -46,7 +46,7 @@ fn test_make_set_single_value() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     
@@ -60,7 +60,7 @@ fn test_make_set_multiple_values() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "compiler", "gcc", "clang"])
+        .args(&["config", "--make", "--set", "compiler", "gcc", "clang"])
         .assert()
         .success();
     
@@ -76,13 +76,13 @@ fn test_make_add_to_array() {
     
     // Add first set of values
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.0", "main.c", "debug.c"])
+        .args(&["config", "--make", "--add", "build.files.0", "main.c", "debug.c"])
         .assert()
         .success();
     
     // Add more values
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.0", "common.c"])
+        .args(&["config", "--make", "--add", "build.files.0", "common.c"])
         .assert()
         .success();
     
@@ -98,13 +98,13 @@ fn test_make_del_from_array() {
     
     // Add values
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.0", "main.c", "debug.c", "test.c"])
+        .args(&["config", "--make", "--add", "build.files.0", "main.c", "debug.c", "test.c"])
         .assert()
         .success();
     
     // Delete a value
     get_cmd(&temp_dir)
-        .args(&["make", "del", "build.files.0", "debug.c"])
+        .args(&["config", "--make", "--del", "build.files.0", "debug.c"])
         .assert()
         .success();
     
@@ -119,12 +119,12 @@ fn test_make_list_single_value() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "list"])
+        .args(&["config", "--make", "--list"])
         .assert()
         .success()
         .stdout(predicate::str::contains("build.dir = build"));
@@ -135,12 +135,12 @@ fn test_make_list_array_values() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "add", "compiler", "gcc", "clang", "msvc"])
+        .args(&["config", "--make", "--add", "compiler", "gcc", "clang", "msvc"])
         .assert()
         .success();
     
     let output = get_cmd(&temp_dir)
-        .args(&["make", "list"])
+        .args(&["config", "--make", "--list"])
         .assert()
         .success()
         .get_output()
@@ -159,12 +159,12 @@ fn test_make_unset_key() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "unset", "build.dir"])
+        .args(&["config", "--make", "--unset", "build.dir"])
         .assert()
         .success();
     
@@ -178,7 +178,7 @@ fn test_make_list_nonexistent_feature() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "--feature", "nonexistent", "list"])
+        .args(&["config", "--make", "--feature", "nonexistent", "--list"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("feature 'feature.nonexistent' not found"));
@@ -189,7 +189,7 @@ fn test_make_with_custom_feature() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "--feature", "debug", "set", "build.dir", "debug_build"])
+        .args(&["config", "--make", "--feature", "debug", "--set", "build.dir", "debug_build"])
         .assert()
         .success();
     
@@ -203,7 +203,7 @@ fn test_feature_name_lowercase() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "--feature", "DEBUG", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--feature", "DEBUG", "--set", "build.dir", "build"])
         .assert()
         .success();
     
@@ -217,7 +217,7 @@ fn test_model_set() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["model", "set", "api_key", "test-key-123"])
+        .args(&["config", "--model", "--set", "api_key", "test-key-123"])
         .assert()
         .success();
     
@@ -231,12 +231,12 @@ fn test_model_list() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["model", "set", "api_key", "test-key-123"])
+        .args(&["config", "--model", "--set", "api_key", "test-key-123"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["model", "list"])
+        .args(&["config", "--model", "--list"])
         .assert()
         .success()
         .stdout(predicate::str::contains("api_key = test-key-123"));
@@ -247,7 +247,7 @@ fn test_global_set() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["global", "set", "compiler", "gcc", "clang"])
+        .args(&["config", "--global", "--set", "compiler", "gcc", "clang"])
         .assert()
         .success();
     
@@ -263,12 +263,12 @@ fn test_global_list() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["global", "set", "compiler", "gcc"])
+        .args(&["config", "--global", "--set", "compiler", "gcc"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["global", "list"])
+        .args(&["config", "--global", "--list"])
         .assert()
         .success()
         .stdout(predicate::str::contains("compiler = gcc"));
@@ -280,7 +280,7 @@ fn test_nested_keys() {
     
     // Test deeply nested keys
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.options.debug", "-g", "-O0"])
+        .args(&["config", "--make", "--set", "build.options.debug", "-g", "-O0"])
         .assert()
         .success();
     
@@ -295,53 +295,53 @@ fn test_complex_workflow() {
     
     // Set compiler
     get_cmd(&temp_dir)
-        .args(&["make", "set", "compiler", "gcc"])
+        .args(&["config", "--make", "--set", "compiler", "gcc"])
         .assert()
         .success();
     
     // Set build directory
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     
     // Set build command
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build", "make"])
+        .args(&["config", "--make", "--set", "build", "make"])
         .assert()
         .success();
     
     // Add build options
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.options", "-I../3rd/include -DDEBUG=1"])
+        .args(&["config", "--make", "--add", "build.options", "-I../3rd/include -DDEBUG=1"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.options", "-I../3rd/include"])
+        .args(&["config", "--make", "--add", "build.options", "-I../3rd/include"])
         .assert()
         .success();
     
     // Add files for first option set
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.0", "main.c", "debug.c", "common.c"])
+        .args(&["config", "--make", "--add", "build.files.0", "main.c", "debug.c", "common.c"])
         .assert()
         .success();
     
     // Add files for second option set
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.1", "main.c", "release.c", "common.c"])
+        .args(&["config", "--make", "--add", "build.files.1", "main.c", "release.c", "common.c"])
         .assert()
         .success();
     
     // Set test directory and command
     get_cmd(&temp_dir)
-        .args(&["make", "set", "test.dir", "build"])
+        .args(&["config", "--make", "--set", "test.dir", "build"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "test", "make test"])
+        .args(&["config", "--make", "--set", "test", "make test"])
         .assert()
         .success();
     
@@ -369,7 +369,7 @@ fn test_no_config_file() {
     
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
-    cmd.args(&["make", "list"]);
+    cmd.args(&["config", "--make", "--list"]);
     
     cmd.assert()
         .failure()
@@ -382,7 +382,7 @@ fn test_feature_incomplete_warning() {
     
     // Set only build.dir, should warn about missing required keys
     let output = get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success()
         .get_output()
@@ -400,33 +400,33 @@ fn test_feature_complete_no_warning() {
     
     // Set all required keys
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build", "make"])
+        .args(&["config", "--make", "--set", "build", "make"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "clean.dir", "build"])
+        .args(&["config", "--make", "--set", "clean.dir", "build"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "clean", "make clean"])
+        .args(&["config", "--make", "--set", "clean", "make clean"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "set", "test.dir", "build"])
+        .args(&["config", "--make", "--set", "test.dir", "build"])
         .assert()
         .success();
     
     // Last one should have no warnings
     let output = get_cmd(&temp_dir)
-        .args(&["make", "set", "test", "make test"])
+        .args(&["config", "--make", "--set", "test", "make test"])
         .assert()
         .success()
         .get_output()
@@ -443,53 +443,53 @@ fn test_build_files_exceeds_options_warning() {
     
     // Set up a complete feature first
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build", "make"])
+        .args(&["config", "--make", "--set", "build", "make"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "set", "clean.dir", "build"])
+        .args(&["config", "--make", "--set", "clean.dir", "build"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "set", "clean", "make clean"])
+        .args(&["config", "--make", "--set", "clean", "make clean"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "set", "test.dir", "build"])
+        .args(&["config", "--make", "--set", "test.dir", "build"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "set", "test", "make test"])
+        .args(&["config", "--make", "--set", "test", "make test"])
         .assert()
         .success();
     
     // Add only 2 build.options
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.options", "-O2"])
+        .args(&["config", "--make", "--add", "build.options", "-O2"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.options", "-g"])
+        .args(&["config", "--make", "--add", "build.options", "-g"])
         .assert()
         .success();
     
     // Add build.files.0 and build.files.1 (valid)
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.0", "main.c"])
+        .args(&["config", "--make", "--add", "build.files.0", "main.c"])
         .assert()
         .success();
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.1", "test.c"])
+        .args(&["config", "--make", "--add", "build.files.1", "test.c"])
         .assert()
         .success();
     
     // Add build.files.2 (should warn - index 2 exceeds array of length 2)
     let output = get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.2", "extra.c"])
+        .args(&["config", "--make", "--add", "build.files.2", "extra.c"])
         .assert()
         .success()
         .get_output()
@@ -508,7 +508,7 @@ fn test_list_empty_section() {
     
     // List all in empty global section
     get_cmd(&temp_dir)
-        .args(&["global", "list"])
+        .args(&["config", "--global", "--list"])
         .assert()
         .success()
         .stdout(predicate::str::is_empty());
@@ -520,13 +520,13 @@ fn test_list_global() {
     
     // Set some global values
     get_cmd(&temp_dir)
-        .args(&["global", "set", "compiler", "gcc"])
+        .args(&["config", "--global", "--set", "compiler", "gcc"])
         .assert()
         .success();
     
     // List all global configuration
     get_cmd(&temp_dir)
-        .args(&["global", "list"])
+        .args(&["config", "--global", "--list"])
         .assert()
         .success()
         .stdout(predicate::str::contains("compiler = gcc"));
@@ -538,19 +538,19 @@ fn test_list_with_arrays() {
     
     // Set single value
     get_cmd(&temp_dir)
-        .args(&["make", "set", "build.dir", "build"])
+        .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
         .success();
     
     // Add array values
     get_cmd(&temp_dir)
-        .args(&["make", "add", "build.files.0", "main.c", "test.c"])
+        .args(&["config", "--make", "--add", "build.files.0", "main.c", "test.c"])
         .assert()
         .success();
     
     // List all - should show both single value and array with elements on separate lines
     let output = get_cmd(&temp_dir)
-        .args(&["make", "list"])
+        .args(&["config", "--make", "--list"])
         .assert()
         .success()
         .get_output()
@@ -563,4 +563,83 @@ fn test_list_with_arrays() {
     assert!(stdout.contains("main.c"));
     assert!(stdout.contains("test.c"));
 }
+
+// ===== Validation Tests =====
+
+#[test]
+fn test_validation_no_mode_specified() {
+    let temp_dir = setup_test_env();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Exactly one of --global, --model, or --make must be specified"));
+}
+
+#[test]
+fn test_validation_multiple_modes() {
+    let temp_dir = setup_test_env();
+    
+    // Test --global and --model together
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--model", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+}
+
+#[test]
+fn test_validation_no_operation_specified() {
+    let temp_dir = setup_test_env();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Exactly one of --set, --unset, --add, --del, or --list must be specified"));
+}
+
+#[test]
+fn test_validation_multiple_operations() {
+    let temp_dir = setup_test_env();
+    
+    // Test --set and --unset together
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--set", "--unset", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+}
+
+#[test]
+fn test_validation_feature_without_make() {
+    let temp_dir = setup_test_env();
+    
+    // Test --feature with --global
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--feature", "debug", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--feature can only be used with --make"));
+    
+    // Test --feature with --model
+    get_cmd(&temp_dir)
+        .args(&["config", "--model", "--feature", "debug", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--feature can only be used with --make"));
+}
+
+#[test]
+fn test_validation_feature_with_make_works() {
+    let temp_dir = setup_test_env();
+    
+    // This should succeed (validation should pass)
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--feature", "debug", "--set", "compiler", "gcc"])
+        .assert()
+        .success();
+}
+
 
