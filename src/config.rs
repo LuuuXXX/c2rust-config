@@ -1,11 +1,22 @@
 use crate::error::{ConfigError, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use toml_edit::{DocumentMut, Item, Table};
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct ConfigFile {
+    #[serde(default)]
+    pub global: HashMap<String, toml::Value>,
+    #[serde(default)]
+    pub model: HashMap<String, toml::Value>,
+    #[serde(default, rename = "feature")]
+    pub features: HashMap<String, HashMap<String, toml::Value>>,
+}
 
 pub struct Config {
     config_path: PathBuf,
-    document: DocumentMut,
+    data: ConfigFile,
 }
 
 impl Config {
@@ -33,71 +44,53 @@ impl Config {
             Err(e) => return Err(e.into()),
         };
 
-        let document = content.parse::<DocumentMut>()?;
-        Ok(Config {
-            config_path,
-            document,
-        })
+        let data: ConfigFile = toml::from_str(&content)?;
+        Ok(Config { config_path, data })
     }
 
     /// Save configuration to file
     pub fn save(&self) -> Result<()> {
-        fs::write(&self.config_path, self.document.to_string())?;
+        let content = toml::to_string_pretty(&self.data)?;
+        fs::write(&self.config_path, content)?;
         Ok(())
     }
 
-    /// Get the table for a specific section (model or feature.xxx)
-    fn get_table_mut(&mut self, section: &str, create: bool) -> Result<&mut Table> {
-        // Handle dotted keys by splitting them
-        let parts: Vec<&str> = section.split('.').collect();
-        
-        if parts.is_empty() {
-            return Err(ConfigError::InvalidOperation("Empty section name".to_string()));
-        }
-        
-        // Navigate to the correct table
-        let mut current_table = self.document.as_table_mut();
-        
-        for (i, &part) in parts.iter().enumerate() {
-            let is_last = i == parts.len() - 1;
-            
-            if !current_table.contains_key(part) {
+    /// Get the table for a specific section
+    fn get_table_mut(&mut self, section: &str, create: bool) -> Result<&mut HashMap<String, toml::Value>> {
+        if section == "global" {
+            return Ok(&mut self.data.global);
+        } else if section == "model" {
+            return Ok(&mut self.data.model);
+        } else if let Some(feature_name) = section.strip_prefix("feature.") {
+            if !self.data.features.contains_key(feature_name) {
                 if !create {
                     return Err(ConfigError::FeatureNotFound(section.to_string()));
                 }
-                
-                // Create new table
-                let mut new_table = toml_edit::Table::new();
-                new_table.set_implicit(!is_last); // Last one should be explicit (has [header])
-                current_table.insert(part, toml_edit::Item::Table(new_table));
+                self.data.features.insert(feature_name.to_string(), HashMap::new());
             }
-            
-            current_table = current_table
-                .get_mut(part)
-                .and_then(|item| item.as_table_mut())
-                .ok_or_else(|| ConfigError::TomlParseError(format!("'{}' is not a table", part)))?;
+            return Ok(self.data.features.get_mut(feature_name).unwrap());
         }
-        
-        Ok(current_table)
+        Err(ConfigError::InvalidOperation(format!("Invalid section: {}", section)))
+    }
+
+    /// Get the table for reading
+    fn get_table(&self, section: &str) -> Result<&HashMap<String, toml::Value>> {
+        if section == "global" {
+            return Ok(&self.data.global);
+        } else if section == "model" {
+            return Ok(&self.data.model);
+        } else if let Some(feature_name) = section.strip_prefix("feature.") {
+            return self.data.features
+                .get(feature_name)
+                .ok_or_else(|| ConfigError::FeatureNotFound(section.to_string()));
+        }
+        Err(ConfigError::InvalidOperation(format!("Invalid section: {}", section)))
     }
 
     /// List all values for a key
     pub fn list(&self, section: &str, key: &str) -> Result<Vec<String>> {
-        // Handle dotted section names
-        let section_parts: Vec<&str> = section.split('.').collect();
+        let table = self.get_table(section)?;
         
-        let mut current_item = self.document.as_item();
-        for &part in &section_parts {
-            current_item = current_item
-                .get(part)
-                .ok_or_else(|| ConfigError::FeatureNotFound(section.to_string()))?;
-        }
-        
-        let table = current_item
-            .as_table()
-            .ok_or_else(|| ConfigError::FeatureNotFound(section.to_string()))?;
-
-        // Use dotted key directly
         let value = table
             .get(key)
             .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
@@ -118,80 +111,39 @@ impl Config {
 
     /// Set a key to one or more values
     pub fn set(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
-        let key_parts: Vec<&str> = key.split('.').collect();
-
-        if values.len() == 1 {
-            let value = Item::Value(values[0].clone().into());
-            self.set_value_in_section(section, &key_parts, value)?;
-        } else {
-            let array = toml_edit::Array::from_iter(values.iter().map(|v| v.as_str()));
-            let value = Item::Value(array.into());
-            self.set_value_in_section(section, &key_parts, value)?;
-        }
-
-        Ok(())
-    }
-
-    /// Helper to set a value in a section
-    fn set_value_in_section(&mut self, section: &str, key_parts: &[&str], value: Item) -> Result<()> {
         let table = self.get_table_mut(section, true)?;
-        Self::set_nested_static(table, key_parts, value)
-    }
 
-    /// Helper to set nested values (static method)
-    /// Uses dotted keys (e.g., build.dir = "value") instead of nested tables
-    fn set_nested_static(table: &mut Table, key_parts: &[&str], value: Item) -> Result<()> {
-        if key_parts.is_empty() {
-            return Err(ConfigError::InvalidOperation("Empty key".to_string()));
-        }
-
-        if key_parts.len() == 1 {
-            table[key_parts[0]] = value;
+        let value = if values.len() == 1 {
+            toml::Value::String(values[0].clone())
         } else {
-            // For multi-part keys, create a dotted key entry
-            // The format will be: build.dir = "value" (or with quotes if needed)
-            let dotted_key = key_parts.join(".");
-            table[&dotted_key] = value;
-        }
+            let array: Vec<toml::Value> = values.into_iter()
+                .map(toml::Value::String)
+                .collect();
+            toml::Value::Array(array)
+        };
+
+        table.insert(key.to_string(), value);
         Ok(())
     }
 
     /// Unset (remove) a key
     pub fn unset(&mut self, section: &str, key: &str) -> Result<()> {
         let table = self.get_table_mut(section, false)?;
-        
-        // For dotted keys, just remove using the full dotted key
-        let dotted_key = key;
-        table.remove(dotted_key);
+        table.remove(key);
         Ok(())
     }
 
     /// Add values to an array key
     pub fn add(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
-        // First check if key exists, if not create it
-        {
-            let table = self.get_table_mut(section, true)?;
-            if !table.contains_key(key) {
-                // Create new array with dotted key
-                let empty_array = Item::Value(toml_edit::Array::new().into());
-                table[key] = empty_array;
-            }
-        }
+        let table = self.get_table_mut(section, true)?;
 
-        // Now add values to the array
-        {
-            let table = self.get_table_mut(section, false)?;
-            let item = table
-                .get_mut(key)
-                .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
+        let current = table.entry(key.to_string()).or_insert_with(|| toml::Value::Array(vec![]));
+        
+        let array = current.as_array_mut()
+            .ok_or_else(|| ConfigError::InvalidOperation(format!("'{}' is not an array", key)))?;
 
-            let array = item.as_array_mut().ok_or_else(|| {
-                ConfigError::InvalidOperation(format!("'{}' is not an array", key))
-            })?;
-
-            for value in values {
-                array.push(value);
-            }
+        for value in values {
+            array.push(toml::Value::String(value));
         }
 
         Ok(())
@@ -201,19 +153,15 @@ impl Config {
     pub fn del(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
         let table = self.get_table_mut(section, false)?;
 
-        let item = table
-            .get_mut(key)
+        let current = table.get_mut(key)
             .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
 
-        let array = item.as_array_mut().ok_or_else(|| {
-            ConfigError::InvalidOperation(format!("'{}' is not an array", key))
-        })?;
+        let array = current.as_array_mut()
+            .ok_or_else(|| ConfigError::InvalidOperation(format!("'{}' is not an array", key)))?;
 
-        // Use retain for O(n) complexity instead of repeated removals
-        let values_to_remove: std::collections::HashSet<String> = values.into_iter().collect();
-        array.retain(|item| {
-            item.as_str()
-                .map(|s| !values_to_remove.contains(s))
+        array.retain(|v| {
+            v.as_str()
+                .map(|s| !values.contains(&s.to_string()))
                 .unwrap_or(true)
         });
 
@@ -231,18 +179,9 @@ impl Config {
         }
 
         // Get the feature table
-        let section_parts: Vec<&str> = section.split('.').collect();
-        let mut current_item = self.document.as_item();
-        for &part in &section_parts {
-            match current_item.get(part) {
-                Some(item) => current_item = item,
-                None => return warnings, // Section doesn't exist yet, no validation needed
-            }
-        }
-        
-        let table = match current_item.as_table() {
-            Some(t) => t,
-            None => return warnings,
+        let table = match self.get_table(section) {
+            Ok(t) => t,
+            Err(_) => return warnings, // Section doesn't exist yet, no validation needed
         };
 
         // Required keys that must be configured together
@@ -272,13 +211,13 @@ impl Config {
         }
 
         // Validate build.files.X count doesn't exceed build.options length
-        if let Some(options_item) = table.get("build.options") {
-            if let Some(options_array) = options_item.as_array() {
+        if let Some(options_value) = table.get("build.options") {
+            if let Some(options_array) = options_value.as_array() {
                 let options_count = options_array.len();
                 
                 // Count build.files.X entries
                 let mut max_files_index = -1i32;
-                for (key, _) in table.iter() {
+                for key in table.keys() {
                     if key.starts_with("build.files.") {
                         if let Some(index_str) = key.strip_prefix("build.files.") {
                             if let Ok(index) = index_str.parse::<i32>() {

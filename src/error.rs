@@ -41,8 +41,14 @@ impl From<std::io::Error> for ConfigError {
     }
 }
 
-impl From<toml_edit::TomlError> for ConfigError {
-    fn from(err: toml_edit::TomlError) -> Self {
+impl From<toml::de::Error> for ConfigError {
+    fn from(err: toml::de::Error) -> Self {
+        ConfigError::TomlParseError(err.to_string())
+    }
+}
+
+impl From<toml::ser::Error> for ConfigError {
+    fn from(err: toml::ser::Error) -> Self {
         ConfigError::TomlParseError(err.to_string())
     }
 }
