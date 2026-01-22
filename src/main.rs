@@ -17,6 +17,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Mode {
+    /// Initialize configuration file with template
+    #[command(name = "init")]
+    Init,
     /// Global configuration (e.g., compiler settings)
     #[command(name = "global")]
     Global {
@@ -88,9 +91,19 @@ fn main() {
 fn run() -> Result<(), ConfigError> {
     let cli = Cli::parse();
 
+    match cli.mode {
+        Mode::Init => {
+            Config::init()?;
+            println!("Configuration file created successfully at .c2rust/config.toml");
+            return Ok(());
+        }
+        _ => {}
+    }
+
     let config = Config::load()?;
 
     match cli.mode {
+        Mode::Init => unreachable!(), // Already handled above
         Mode::Global { operation } => {
             execute_operation(config, "global", operation)?;
         }

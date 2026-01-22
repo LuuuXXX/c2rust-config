@@ -11,7 +11,24 @@ cargo build --release
 
 ## Usage
 
-The tool provides three main command modes:
+### Getting Started
+
+First, create the `.c2rust` directory and initialize the configuration:
+
+```bash
+# Create the .c2rust directory
+mkdir .c2rust
+
+# Initialize configuration with template
+c2rust-config init
+```
+
+This will create a `.c2rust/config.toml` file with template sections for `global`, `model`, and `feature.default`.
+
+### Command Modes
+
+The tool provides four main commands:
+- `init`: Initialize configuration file with template
 - `global`: For global configuration (e.g., compiler settings)
 - `model`: For model-related configuration
 - `make`: For build/clean/test-related configuration
@@ -104,23 +121,16 @@ build = "make"
 
 ## Requirements
 
+- Create the `.c2rust` directory first: `mkdir .c2rust`
+- Initialize the configuration: `c2rust-config init`
 - The tool searches for `.c2rust` directory by traversing up from the current directory
-- The `.c2rust` directory and `config.toml` file must exist before running the tool
-- Create them manually if they don't exist:
-
-```bash
-mkdir .c2rust
-cat > .c2rust/config.toml << 'EOF'
-[global]
-
-[model]
-EOF
-```
 
 ## Error Messages
 
 The tool provides clear, hierarchical error messages:
-1. If `.c2rust` directory is not found
+1. If `.c2rust` directory is not found (for `init` command)
+2. If `config.toml` already exists (for `init` command)
+3. If `.c2rust` directory is not found (for other commands)
 2. If `config.toml` file is not found
 3. If a feature is not found
 4. If a key is not found
