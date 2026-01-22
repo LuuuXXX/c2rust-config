@@ -97,6 +97,13 @@ fn run() -> Result<(), ConfigError> {
                 ));
             }
 
+            // Validate that --feature is only used with --make
+            if args.feature.is_some() && !args.make {
+                return Err(ConfigError::InvalidOperation(
+                    "--feature can only be used with --make".to_string(),
+                ));
+            }
+
             // Determine the section based on mode flags
             let section = if args.global {
                 "global".to_string()
