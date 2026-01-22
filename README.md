@@ -11,18 +11,23 @@ cargo build --release
 
 ## Usage
 
-The tool provides two main command modes:
+The tool provides three main command modes:
+- `global`: For global configuration (e.g., compiler settings)
 - `model`: For model-related configuration
 - `make`: For build/clean/test-related configuration
 
 ### Basic Commands
 
 ```bash
+# Global configuration
+c2rust-config global set compiler "gcc"
+c2rust-config global add compiler "clang"
+
 # Set a single value
 c2rust-config make set build.dir "build"
 
 # Set multiple values (creates an array)
-c2rust-config make set compiler "gcc" "clang"
+c2rust-config make set build "make"
 
 # Add values to an array
 c2rust-config make add build.options "-I../3rd/include -DDEBUG=1"
@@ -50,6 +55,13 @@ c2rust-config make --feature release set build.dir "release_build"
 
 Feature names are case-insensitive and will be converted to lowercase.
 
+### Global Configuration
+
+```bash
+c2rust-config global set compiler "gcc"
+c2rust-config global list compiler
+```
+
 ### Model Configuration
 
 ```bash
@@ -62,14 +74,30 @@ c2rust-config model list api_key
 The configuration is stored in `.c2rust/config.toml`:
 
 ```toml
-[model]
-api_key = "test-key"
+# Global configuration
+[global]
+compiler = ["gcc"]
 
+# Model-related configuration
+[model]
+
+# Feature-specific configuration
 [feature.default]
-compiler = "gcc"
+# Relative to project root (.c2rust directory)
+"clean.dir" = "build"
+clean = "make clean"
+# Relative to project root
+"test.dir" = "build"
+test = "make test"
+# Relative to project root
 "build.dir" = "build"
 build = "make"
+# Build options for extracting target files to translate
+# Different files may have different compilation options
+# One build can generate both debug/release binaries
 "build.options" = ["-I../3rd/include -DDEBUG=1", "-I../3rd/include"]
+# files.x index corresponds to options index
+# Each file list corresponds to one set of compilation options
 "build.files.0" = ["main.c", "debug.c", "common.c"]
 "build.files.1" = ["main.c", "release.c", "common.c"]
 ```
@@ -82,7 +110,11 @@ build = "make"
 
 ```bash
 mkdir .c2rust
-echo "[model]" > .c2rust/config.toml
+cat > .c2rust/config.toml << 'EOF'
+[global]
+
+[model]
+EOF
 ```
 
 ## Error Messages

@@ -17,6 +17,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Mode {
+    /// Global configuration (e.g., compiler settings)
+    #[command(name = "global")]
+    Global {
+        #[command(subcommand)]
+        operation: OperationCmd,
+    },
     /// Model-related configuration
     #[command(name = "model")]
     Model {
@@ -85,6 +91,9 @@ fn run() -> Result<(), ConfigError> {
     let config = Config::load()?;
 
     match cli.mode {
+        Mode::Global { operation } => {
+            execute_operation(config, "global", operation)?;
+        }
         Mode::Model { operation } => {
             execute_operation(config, "model", operation)?;
         }

@@ -9,9 +9,9 @@ fn setup_test_env() -> TempDir {
     let c2rust_dir = temp_dir.path().join(".c2rust");
     fs::create_dir(&c2rust_dir).unwrap();
     
-    // Create an initial config file with [model] section
+    // Create an initial config file with [global] and [model] sections
     let config_path = c2rust_dir.join("config.toml");
-    fs::write(&config_path, "[model]\n").unwrap();
+    fs::write(&config_path, "[global]\n\n[model]\n").unwrap();
     
     temp_dir
 }
@@ -255,6 +255,38 @@ fn test_model_list() {
         .assert()
         .success()
         .stdout(predicate::str::contains("test-key-123\n"));
+}
+
+#[test]
+fn test_global_set() {
+    let temp_dir = setup_test_env();
+    
+    get_cmd(&temp_dir)
+        .args(&["global", "set", "compiler", "gcc", "clang"])
+        .assert()
+        .success();
+    
+    let config = read_config(&temp_dir);
+    assert!(config.contains("[global]"));
+    assert!(config.contains("compiler"));
+    assert!(config.contains("gcc"));
+    assert!(config.contains("clang"));
+}
+
+#[test]
+fn test_global_list() {
+    let temp_dir = setup_test_env();
+    
+    get_cmd(&temp_dir)
+        .args(&["global", "set", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["global", "list", "compiler"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("gcc\n"));
 }
 
 #[test]
