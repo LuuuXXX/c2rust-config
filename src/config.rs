@@ -9,18 +9,14 @@ pub struct Config {
 }
 
 impl Config {
-    /// Find .c2rust directory by traversing up from current directory
+    /// Find .c2rust directory in current directory
     fn find_c2rust_dir() -> Result<PathBuf> {
-        let mut current = std::env::current_dir()?;
-        loop {
-            let c2rust_path = current.join(".c2rust");
-            if c2rust_path.exists() && c2rust_path.is_dir() {
-                return Ok(c2rust_path);
-            }
-            match current.parent() {
-                Some(parent) => current = parent.to_path_buf(),
-                None => return Err(ConfigError::ConfigDirNotFound),
-            }
+        let current = std::env::current_dir()?;
+        let c2rust_path = current.join(".c2rust");
+        if c2rust_path.exists() && c2rust_path.is_dir() {
+            Ok(c2rust_path)
+        } else {
+            Err(ConfigError::ConfigDirNotFound)
         }
     }
 

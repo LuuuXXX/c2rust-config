@@ -104,8 +104,8 @@ build = "make"
 
 ## Requirements
 
-- The tool searches for `.c2rust` directory by traversing up from the current directory
-- The `.c2rust` directory and `config.toml` file must exist before running the tool
+- The tool searches for `.c2rust` directory in the current directory only (does not traverse parent directories)
+- The `.c2rust` directory and `config.toml` file must exist in the current directory before running the tool
 - Create them manually if they don't exist:
 
 ```bash
