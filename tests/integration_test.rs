@@ -34,7 +34,7 @@ fn test_no_c2rust_directory() {
     let temp_dir = TempDir::new().unwrap();
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
-    cmd.args(&["make", "list", "build"]);
+    cmd.args(&["make", "list"]);
     
     cmd.assert()
         .failure()
@@ -124,10 +124,10 @@ fn test_make_list_single_value() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["make", "list", "build.dir"])
+        .args(&["make", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("build\n"));
+        .stdout(predicate::str::contains("build.dir = build"));
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn test_make_list_array_values() {
         .success();
     
     let output = get_cmd(&temp_dir)
-        .args(&["make", "list", "compiler"])
+        .args(&["make", "list"])
         .assert()
         .success()
         .get_output()
@@ -148,6 +148,7 @@ fn test_make_list_array_values() {
         .clone();
     
     let output_str = String::from_utf8(output).unwrap();
+    assert!(output_str.contains("compiler = ["));
     assert!(output_str.contains("gcc"));
     assert!(output_str.contains("clang"));
     assert!(output_str.contains("msvc"));
@@ -171,29 +172,13 @@ fn test_make_unset_key() {
     assert!(!config.contains("build.dir"));
 }
 
-#[test]
-fn test_make_list_nonexistent_key() {
-    let temp_dir = setup_test_env();
-    
-    // First set a key to create the feature.default section
-    get_cmd(&temp_dir)
-        .args(&["make", "set", "dummy", "value"])
-        .assert()
-        .success();
-    
-    get_cmd(&temp_dir)
-        .args(&["make", "list", "nonexistent.key"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("key 'nonexistent.key' not found"));
-}
 
 #[test]
 fn test_make_list_nonexistent_feature() {
     let temp_dir = setup_test_env();
     
     get_cmd(&temp_dir)
-        .args(&["make", "--feature", "nonexistent", "list", "build"])
+        .args(&["make", "--feature", "nonexistent", "list"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("feature 'feature.nonexistent' not found"));
@@ -251,10 +236,10 @@ fn test_model_list() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["model", "list", "api_key"])
+        .args(&["model", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("test-key-123\n"));
+        .stdout(predicate::str::contains("api_key = test-key-123"));
 }
 
 #[test]
@@ -283,10 +268,10 @@ fn test_global_list() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["global", "list", "compiler"])
+        .args(&["global", "list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("gcc\n"));
+        .stdout(predicate::str::contains("compiler = gcc"));
 }
 
 #[test]
@@ -384,7 +369,7 @@ fn test_no_config_file() {
     
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
-    cmd.args(&["make", "list", "build"]);
+    cmd.args(&["make", "list"]);
     
     cmd.assert()
         .failure()
@@ -518,7 +503,7 @@ fn test_build_files_exceeds_options_warning() {
 }
 
 #[test]
-fn test_list_all_empty_section() {
+fn test_list_empty_section() {
     let temp_dir = setup_test_env();
     
     // List all in empty global section
@@ -530,7 +515,7 @@ fn test_list_all_empty_section() {
 }
 
 #[test]
-fn test_list_all_global() {
+fn test_list_global() {
     let temp_dir = setup_test_env();
     
     // Set some global values
@@ -548,7 +533,7 @@ fn test_list_all_global() {
 }
 
 #[test]
-fn test_list_all_with_arrays() {
+fn test_list_with_arrays() {
     let temp_dir = setup_test_env();
     
     // Set single value
@@ -563,7 +548,7 @@ fn test_list_all_with_arrays() {
         .assert()
         .success();
     
-    // List all - should show both single value and array
+    // List all - should show both single value and array with elements on separate lines
     let output = get_cmd(&temp_dir)
         .args(&["make", "list"])
         .assert()
@@ -579,28 +564,3 @@ fn test_list_all_with_arrays() {
     assert!(stdout.contains("test.c"));
 }
 
-#[test]
-fn test_list_specific_key_still_works() {
-    let temp_dir = setup_test_env();
-    
-    // Add array values
-    get_cmd(&temp_dir)
-        .args(&["make", "add", "build.options", "-I../include", "-DDEBUG"])
-        .assert()
-        .success();
-    
-    // List specific key (backward compatibility)
-    let output = get_cmd(&temp_dir)
-        .args(&["make", "list", "build.options"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    
-    let stdout = String::from_utf8(output).unwrap();
-    assert!(stdout.contains("-I../include"));
-    assert!(stdout.contains("-DDEBUG"));
-    // Should NOT contain "build.options =" (that's list_all format)
-    assert!(!stdout.contains("build.options ="));
-}

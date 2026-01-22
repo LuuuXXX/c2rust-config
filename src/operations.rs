@@ -7,7 +7,6 @@ pub enum Operation {
     Add,
     Del,
     List,
-    ListAll,
 }
 
 pub fn execute(
@@ -55,12 +54,6 @@ pub fn execute(
             }
         }
         Operation::List => {
-            let results = config.list(section, key)?;
-            for value in results {
-                println!("{}", value);
-            }
-        }
-        Operation::ListAll => {
             let results = config.list_all(section)?;
             for (key, values) in results {
                 if values.len() == 1 {
