@@ -1,5 +1,4 @@
 use crate::error::{ConfigError, Result};
-use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use toml_edit::{DocumentMut, Item, Table};
