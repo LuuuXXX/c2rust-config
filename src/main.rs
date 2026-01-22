@@ -116,44 +116,50 @@ fn run() -> Result<(), ConfigError> {
             };
 
             // Execute the operation based on operation flags
-            if args.set {
-                let key = args.key.ok_or_else(|| {
-                    ConfigError::InvalidOperation("--set requires a key".to_string())
-                })?;
-                if args.values.is_empty() {
-                    return Err(ConfigError::InvalidOperation(
-                        "No values provided for set operation".to_string(),
-                    ));
+            match (args.set, args.unset, args.add, args.del, args.list) {
+                (true, false, false, false, false) => {
+                    let key = args.key.ok_or_else(|| {
+                        ConfigError::InvalidOperation("--set requires a key".to_string())
+                    })?;
+                    if args.values.is_empty() {
+                        return Err(ConfigError::InvalidOperation(
+                            "No values provided for set operation".to_string(),
+                        ));
+                    }
+                    operations::execute(config, Operation::Set, &section, &key, args.values)?;
                 }
-                operations::execute(config, Operation::Set, &section, &key, args.values)?;
-            } else if args.unset {
-                let key = args.key.ok_or_else(|| {
-                    ConfigError::InvalidOperation("--unset requires a key".to_string())
-                })?;
-                operations::execute(config, Operation::Unset, &section, &key, vec![])?;
-            } else if args.add {
-                let key = args.key.ok_or_else(|| {
-                    ConfigError::InvalidOperation("--add requires a key".to_string())
-                })?;
-                if args.values.is_empty() {
-                    return Err(ConfigError::InvalidOperation(
-                        "No values provided for add operation".to_string(),
-                    ));
+                (false, true, false, false, false) => {
+                    let key = args.key.ok_or_else(|| {
+                        ConfigError::InvalidOperation("--unset requires a key".to_string())
+                    })?;
+                    operations::execute(config, Operation::Unset, &section, &key, vec![])?;
                 }
-                operations::execute(config, Operation::Add, &section, &key, args.values)?;
-            } else if args.del {
-                let key = args.key.ok_or_else(|| {
-                    ConfigError::InvalidOperation("--del requires a key".to_string())
-                })?;
-                if args.values.is_empty() {
-                    return Err(ConfigError::InvalidOperation(
-                        "No values provided for del operation".to_string(),
-                    ));
+                (false, false, true, false, false) => {
+                    let key = args.key.ok_or_else(|| {
+                        ConfigError::InvalidOperation("--add requires a key".to_string())
+                    })?;
+                    if args.values.is_empty() {
+                        return Err(ConfigError::InvalidOperation(
+                            "No values provided for add operation".to_string(),
+                        ));
+                    }
+                    operations::execute(config, Operation::Add, &section, &key, args.values)?;
                 }
-                operations::execute(config, Operation::Del, &section, &key, args.values)?;
-            } else {
-                // args.list must be true due to validation above
-                operations::execute(config, Operation::List, &section, "", vec![])?;
+                (false, false, false, true, false) => {
+                    let key = args.key.ok_or_else(|| {
+                        ConfigError::InvalidOperation("--del requires a key".to_string())
+                    })?;
+                    if args.values.is_empty() {
+                        return Err(ConfigError::InvalidOperation(
+                            "No values provided for del operation".to_string(),
+                        ));
+                    }
+                    operations::execute(config, Operation::Del, &section, &key, args.values)?;
+                }
+                (false, false, false, false, true) => {
+                    operations::execute(config, Operation::List, &section, "", vec![])?;
+                }
+                _ => unreachable!("Operation validation ensures exactly one operation is set"),
             }
         }
     }
