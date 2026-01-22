@@ -102,11 +102,10 @@ fn run() -> Result<(), ConfigError> {
                 "global".to_string()
             } else if args.model {
                 "model".to_string()
-            } else if args.make {
+            } else {
+                // args.make must be true due to validation above
                 let feature_name = args.feature.unwrap_or_else(|| "default".to_string()).to_lowercase();
                 format!("feature.{}", feature_name)
-            } else {
-                unreachable!("Mode validation ensures one of global/model/make is set");
             };
 
             // Execute the operation based on operation flags
@@ -145,10 +144,9 @@ fn run() -> Result<(), ConfigError> {
                     ));
                 }
                 operations::execute(config, Operation::Del, &section, &key, args.values)?;
-            } else if args.list {
-                operations::execute(config, Operation::List, &section, "", vec![])?;
             } else {
-                unreachable!("Operation validation ensures one operation is set");
+                // args.list must be true due to validation above
+                operations::execute(config, Operation::List, &section, "", vec![])?;
             }
         }
     }
