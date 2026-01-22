@@ -20,18 +20,38 @@ pub fn execute(
         Operation::Set => {
             config.set(section, key, values)?;
             config.save()?;
+            // Validate feature configuration after save
+            let warnings = config.validate_feature(section);
+            for warning in warnings {
+                eprintln!("{}", warning);
+            }
         }
         Operation::Unset => {
             config.unset(section, key)?;
             config.save()?;
+            // Validate feature configuration after save
+            let warnings = config.validate_feature(section);
+            for warning in warnings {
+                eprintln!("{}", warning);
+            }
         }
         Operation::Add => {
             config.add(section, key, values)?;
             config.save()?;
+            // Validate feature configuration after save
+            let warnings = config.validate_feature(section);
+            for warning in warnings {
+                eprintln!("{}", warning);
+            }
         }
         Operation::Del => {
             config.del(section, key, values)?;
             config.save()?;
+            // Validate feature configuration after save
+            let warnings = config.validate_feature(section);
+            for warning in warnings {
+                eprintln!("{}", warning);
+            }
         }
         Operation::List => {
             let results = config.list(section, key)?;

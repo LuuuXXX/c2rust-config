@@ -390,3 +390,129 @@ fn test_no_config_file() {
         .failure()
         .stderr(predicate::str::contains("config.toml file not found"));
 }
+
+#[test]
+fn test_feature_incomplete_warning() {
+    let temp_dir = setup_test_env();
+    
+    // Set only build.dir, should warn about missing required keys
+    let output = get_cmd(&temp_dir)
+        .args(&["make", "set", "build.dir", "build"])
+        .assert()
+        .success()
+        .get_output()
+        .stderr
+        .clone();
+    
+    let stderr = String::from_utf8(output).unwrap();
+    assert!(stderr.contains("Warning"));
+    assert!(stderr.contains("missing required keys"));
+}
+
+#[test]
+fn test_feature_complete_no_warning() {
+    let temp_dir = setup_test_env();
+    
+    // Set all required keys
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "build", "make"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "clean.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "clean", "make clean"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "test.dir", "build"])
+        .assert()
+        .success();
+    
+    // Last one should have no warnings
+    let output = get_cmd(&temp_dir)
+        .args(&["make", "set", "test", "make test"])
+        .assert()
+        .success()
+        .get_output()
+        .stderr
+        .clone();
+    
+    let stderr = String::from_utf8(output).unwrap();
+    assert!(!stderr.contains("missing required keys"));
+}
+
+#[test]
+fn test_build_files_exceeds_options_warning() {
+    let temp_dir = setup_test_env();
+    
+    // Set up a complete feature first
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "build.dir", "build"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "build", "make"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "clean.dir", "build"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "clean", "make clean"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "test.dir", "build"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "test", "make test"])
+        .assert()
+        .success();
+    
+    // Add only 2 build.options
+    get_cmd(&temp_dir)
+        .args(&["make", "add", "build.options", "-O2"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "add", "build.options", "-g"])
+        .assert()
+        .success();
+    
+    // Add build.files.0 and build.files.1 (valid)
+    get_cmd(&temp_dir)
+        .args(&["make", "add", "build.files.0", "main.c"])
+        .assert()
+        .success();
+    get_cmd(&temp_dir)
+        .args(&["make", "add", "build.files.1", "test.c"])
+        .assert()
+        .success();
+    
+    // Add build.files.2 (should warn - index 2 exceeds array of length 2)
+    let output = get_cmd(&temp_dir)
+        .args(&["make", "add", "build.files.2", "extra.c"])
+        .assert()
+        .success()
+        .get_output()
+        .stderr
+        .clone();
+    
+    let stderr = String::from_utf8(output).unwrap();
+    assert!(stderr.contains("Warning"));
+    assert!(stderr.contains("build.files.2"));
+    assert!(stderr.contains("build.options"));
+}

@@ -125,6 +125,26 @@ The tool provides clear, hierarchical error messages:
 3. If a feature is not found
 4. If a key is not found
 
+## Validation and Warnings
+
+The tool validates feature configurations and provides warnings for:
+
+1. **Incomplete Feature Configuration**: When configuring a feature, all of the following keys must be set together:
+   - `clean.dir`
+   - `clean`
+   - `test.dir`
+   - `test`
+   - `build.dir`
+   - `build`
+   
+   If some but not all of these keys are present, a warning will be displayed listing the missing keys.
+
+2. **Build Files Index Validation**: The number of `build.files.X` entries should not exceed the length of the `build.options` array. For example, if you have 2 entries in `build.options`, you should only use `build.files.0` and `build.files.1`. Using `build.files.2` or higher will generate a warning.
+
+**Optional Keys**: The following keys are optional and do not trigger warnings:
+- `build.options`
+- `build.files.0`, `build.files.1`, etc.
+
 ## Development
 
 ### Running Tests

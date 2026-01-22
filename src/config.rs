@@ -223,4 +223,88 @@ impl Config {
 
         Ok(())
     }
+
+    /// Validate that a feature has all required configuration keys
+    /// Returns warnings if any required keys are missing
+    pub fn validate_feature(&self, section: &str) -> Vec<String> {
+        let mut warnings = Vec::new();
+        
+        // Only validate feature sections, not global or model
+        if !section.starts_with("feature.") {
+            return warnings;
+        }
+
+        // Get the feature table
+        let section_parts: Vec<&str> = section.split('.').collect();
+        let mut current_item = self.document.as_item();
+        for &part in &section_parts {
+            match current_item.get(part) {
+                Some(item) => current_item = item,
+                None => return warnings, // Section doesn't exist yet, no validation needed
+            }
+        }
+        
+        let table = match current_item.as_table() {
+            Some(t) => t,
+            None => return warnings,
+        };
+
+        // Required keys that must be configured together
+        let required_keys = [
+            "clean.dir",
+            "clean",
+            "test.dir",
+            "test",
+            "build.dir",
+            "build",
+        ];
+
+        let mut missing_keys = Vec::new();
+        for key in &required_keys {
+            if !table.contains_key(*key) {
+                missing_keys.push(*key);
+            }
+        }
+
+        // If some but not all required keys are present, warn about missing ones
+        if !missing_keys.is_empty() && missing_keys.len() < required_keys.len() {
+            warnings.push(format!(
+                "Warning: Feature '{}' is missing required keys: {}. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.",
+                section,
+                missing_keys.join(", ")
+            ));
+        }
+
+        // Validate build.files.X count doesn't exceed build.options length
+        if let Some(options_item) = table.get("build.options") {
+            if let Some(options_array) = options_item.as_array() {
+                let options_count = options_array.len();
+                
+                // Count build.files.X entries
+                let mut max_files_index = -1i32;
+                for (key, _) in table.iter() {
+                    if key.starts_with("build.files.") {
+                        if let Some(index_str) = key.strip_prefix("build.files.") {
+                            if let Ok(index) = index_str.parse::<i32>() {
+                                if index > max_files_index {
+                                    max_files_index = index;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if max_files_index >= options_count as i32 {
+                    warnings.push(format!(
+                        "Warning: Feature '{}' has build.files.{} but only {} build.options entries. build.files.X indices should not exceed build.options array length.",
+                        section,
+                        max_files_index,
+                        options_count
+                    ));
+                }
+            }
+        }
+
+        warnings
+    }
 }
