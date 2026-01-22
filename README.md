@@ -36,8 +36,8 @@ c2rust-config make add build.files.0 "main.c" "debug.c" "common.c"
 # Delete values from an array
 c2rust-config make del build.files.0 "debug.c"
 
-# List all values for a key
-c2rust-config make list build.dir
+# List all values in the section
+c2rust-config make list
 
 # Remove a key
 c2rust-config make unset build.dir
@@ -59,14 +59,14 @@ Feature names are case-insensitive and will be converted to lowercase.
 
 ```bash
 c2rust-config global set compiler "gcc"
-c2rust-config global list compiler
+c2rust-config global list
 ```
 
 ### Model Configuration
 
 ```bash
 c2rust-config model set api_key "your-key"
-c2rust-config model list api_key
+c2rust-config model list
 ```
 
 ## Configuration File Format

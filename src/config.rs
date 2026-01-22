@@ -161,9 +161,11 @@ impl Config {
         let array = current.as_array_mut()
             .ok_or_else(|| ConfigError::InvalidOperation(format!("'{}' is not an array", key)))?;
 
+        // Use HashSet for O(n+m) performance instead of O(n*m)
+        let values_set: std::collections::HashSet<_> = values.iter().map(|s| s.as_str()).collect();
         array.retain(|v| {
             v.as_str()
-                .map(|s| !values.contains(&s.to_string()))
+                .map(|s| !values_set.contains(s))
                 .unwrap_or(true)
         });
 
@@ -217,27 +219,28 @@ impl Config {
             if let Some(options_array) = options_value.as_array() {
                 let options_count = options_array.len();
                 
-                // Count build.files.X entries
-                let mut max_files_index = -1i32;
+                // Track maximum build.files.X index
+                let mut max_files_index: Option<usize> = None;
                 for key in table.keys() {
                     if key.starts_with("build.files.") {
                         if let Some(index_str) = key.strip_prefix("build.files.") {
-                            if let Ok(index) = index_str.parse::<i32>() {
-                                if index > max_files_index {
-                                    max_files_index = index;
-                                }
+                            if let Ok(index) = index_str.parse::<usize>() {
+                                max_files_index =
+                                    Some(max_files_index.map_or(index, |m| m.max(index)));
                             }
                         }
                     }
                 }
                 
-                if max_files_index >= options_count as i32 {
-                    warnings.push(format!(
-                        "Warning: Feature '{}' has build.files.{} but only {} build.options entries. build.files.X indices should not exceed build.options array length.",
-                        section,
-                        max_files_index,
-                        options_count
-                    ));
+                if let Some(idx) = max_files_index {
+                    if idx >= options_count {
+                        warnings.push(format!(
+                            "Warning: Feature '{}' has build.files.{} but only {} build.options entries. build.files.X indices should not exceed build.options array length.",
+                            section,
+                            idx,
+                            options_count
+                        ));
+                    }
                 }
             }
         }
