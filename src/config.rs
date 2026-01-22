@@ -44,61 +44,6 @@ impl Config {
         })
     }
 
-    /// Initialize a new configuration file
-    pub fn init() -> Result<()> {
-        // Check if .c2rust directory exists in current directory
-        let current_dir = std::env::current_dir()?;
-        let c2rust_dir = current_dir.join(".c2rust");
-        
-        if !c2rust_dir.exists() {
-            return Err(ConfigError::InvalidOperation(
-                "Error: .c2rust directory not found in current path. Please create it first:\n  mkdir .c2rust".to_string()
-            ));
-        }
-
-        let config_path = c2rust_dir.join("config.toml");
-        
-        // Check if config.toml already exists
-        if config_path.exists() {
-            return Err(ConfigError::InvalidOperation(
-                "Configuration file already exists at .c2rust/config.toml".to_string()
-            ));
-        }
-
-        // Create the template configuration with global, model, and feature sections
-        let template = r#"# Global configuration
-[global]
-# Compiler settings (usually no need to configure)
-# compiler = ["gcc"]
-
-# Model-related configuration
-[model]
-
-# Feature-specific configuration
-[feature.default]
-# Relative to project root (.c2rust directory)
-# clean.dir = "build"
-# clean = "make clean"
-# Relative to project root
-# test.dir = "build"
-# test = "make test"
-# Relative to project root
-# build.dir = "build"
-# build = "make"
-# Build options for extracting target files to translate
-# Different files may have different compilation options
-# One build can generate both debug/release binaries
-# build.options = ["-I../3rd/include -DDEBUG=1", "-I../3rd/include"]
-# files.x index corresponds to options index
-# Each file list corresponds to one set of compilation options
-# build.files.0 = ["main.c", "debug.c", "common.c"]
-# build.files.1 = ["main.c", "release.c", "common.c"]
-"#;
-
-        fs::write(&config_path, template)?;
-        Ok(())
-    }
-
     /// Save configuration to file
     pub fn save(&self) -> Result<()> {
         fs::write(&self.config_path, self.document.to_string())?;
