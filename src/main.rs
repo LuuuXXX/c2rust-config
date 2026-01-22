@@ -115,9 +115,21 @@ fn run() -> Result<(), ConfigError> {
                 format!("feature.{}", feature_name)
             };
 
-            // Execute the operation based on operation flags
-            match (args.set, args.unset, args.add, args.del, args.list) {
-                (true, false, false, false, false) => {
+            // Determine which operation is active and execute it
+            let operation = if args.set {
+                Operation::Set
+            } else if args.unset {
+                Operation::Unset
+            } else if args.add {
+                Operation::Add
+            } else if args.del {
+                Operation::Del
+            } else {
+                Operation::List
+            };
+
+            match operation {
+                Operation::Set => {
                     let key = args.key.ok_or_else(|| {
                         ConfigError::InvalidOperation("--set requires a key".to_string())
                     })?;
@@ -128,13 +140,13 @@ fn run() -> Result<(), ConfigError> {
                     }
                     operations::execute(config, Operation::Set, &section, &key, args.values)?;
                 }
-                (false, true, false, false, false) => {
+                Operation::Unset => {
                     let key = args.key.ok_or_else(|| {
                         ConfigError::InvalidOperation("--unset requires a key".to_string())
                     })?;
                     operations::execute(config, Operation::Unset, &section, &key, vec![])?;
                 }
-                (false, false, true, false, false) => {
+                Operation::Add => {
                     let key = args.key.ok_or_else(|| {
                         ConfigError::InvalidOperation("--add requires a key".to_string())
                     })?;
@@ -145,7 +157,7 @@ fn run() -> Result<(), ConfigError> {
                     }
                     operations::execute(config, Operation::Add, &section, &key, args.values)?;
                 }
-                (false, false, false, true, false) => {
+                Operation::Del => {
                     let key = args.key.ok_or_else(|| {
                         ConfigError::InvalidOperation("--del requires a key".to_string())
                     })?;
@@ -156,10 +168,9 @@ fn run() -> Result<(), ConfigError> {
                     }
                     operations::execute(config, Operation::Del, &section, &key, args.values)?;
                 }
-                (false, false, false, false, true) => {
+                Operation::List => {
                     operations::execute(config, Operation::List, &section, "", vec![])?;
                 }
-                _ => unreachable!("Operation validation ensures exactly one operation is set"),
             }
         }
     }
