@@ -564,3 +564,82 @@ fn test_list_with_arrays() {
     assert!(stdout.contains("test.c"));
 }
 
+// ===== Validation Tests =====
+
+#[test]
+fn test_validation_no_mode_specified() {
+    let temp_dir = setup_test_env();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Exactly one of --global, --model, or --make must be specified"));
+}
+
+#[test]
+fn test_validation_multiple_modes() {
+    let temp_dir = setup_test_env();
+    
+    // Test --global and --model together
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--model", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+}
+
+#[test]
+fn test_validation_no_operation_specified() {
+    let temp_dir = setup_test_env();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Exactly one of --set, --unset, --add, --del, or --list must be specified"));
+}
+
+#[test]
+fn test_validation_multiple_operations() {
+    let temp_dir = setup_test_env();
+    
+    // Test --set and --unset together
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--set", "--unset", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+}
+
+#[test]
+fn test_validation_feature_without_make() {
+    let temp_dir = setup_test_env();
+    
+    // Test --feature with --global
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--feature", "debug", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--feature can only be used with --make"));
+    
+    // Test --feature with --model
+    get_cmd(&temp_dir)
+        .args(&["config", "--model", "--feature", "debug", "--set", "test", "value"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--feature can only be used with --make"));
+}
+
+#[test]
+fn test_validation_feature_with_make_works() {
+    let temp_dir = setup_test_env();
+    
+    // This should succeed (validation should pass)
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--feature", "debug", "--set", "compiler", "gcc"])
+        .assert()
+        .success();
+}
+
+

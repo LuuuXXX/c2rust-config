@@ -81,7 +81,11 @@ fn run() -> Result<(), ConfigError> {
 
     match cli.command {
         Commands::Config(args) => {
-            // Validate that exactly one mode is selected
+            // Manual validation for mutually exclusive mode flags
+            // Note: While clap groups prevent multiple modes from conflicting with each other
+            // (e.g., --global and --model together), we still need manual validation to ensure
+            // exactly one mode is selected, as clap boolean flags don't enforce "required"
+            // in the same way positional arguments do.
             let mode_count = [args.global, args.model, args.make].iter().filter(|&&x| x).count();
             if mode_count != 1 {
                 return Err(ConfigError::InvalidOperation(
@@ -89,7 +93,9 @@ fn run() -> Result<(), ConfigError> {
                 ));
             }
 
-            // Validate that exactly one operation is selected
+            // Manual validation for mutually exclusive operation flags
+            // Same reasoning as above - clap groups prevent conflicts but don't enforce
+            // that at least one operation is selected when all are boolean flags.
             let op_count = [args.set, args.unset, args.add, args.del, args.list].iter().filter(|&&x| x).count();
             if op_count != 1 {
                 return Err(ConfigError::InvalidOperation(
@@ -98,6 +104,8 @@ fn run() -> Result<(), ConfigError> {
             }
 
             // Validate that --feature is only used with --make
+            // The clap `requires` attribute doesn't work correctly with boolean flags,
+            // so we validate this relationship manually.
             if args.feature.is_some() && !args.make {
                 return Err(ConfigError::InvalidOperation(
                     "--feature can only be used with --make".to_string(),
