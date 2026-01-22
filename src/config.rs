@@ -1,4 +1,5 @@
 use crate::error::{ConfigError, Result};
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use toml_edit::{DocumentMut, Item, Table};
@@ -83,47 +84,6 @@ impl Config {
         }
         
         Ok(current_table)
-    }
-
-    /// Get nested value from table using dot-separated key
-    fn get_nested<'a>(table: &'a Table, key_parts: &[&str]) -> Option<&'a Item> {
-        if key_parts.is_empty() {
-            return None;
-        }
-
-        let mut current = table.get(key_parts[0])?;
-        for &part in &key_parts[1..] {
-            current = current.get(part)?;
-        }
-        Some(current)
-    }
-
-    /// Get mutable nested value from table using dot-separated key
-    fn get_nested_mut<'a>(
-        table: &'a mut Table,
-        key_parts: &[&str],
-        create: bool,
-    ) -> Option<&'a mut Item> {
-        if key_parts.is_empty() {
-            return None;
-        }
-
-        let mut current = if create {
-            if !table.contains_key(key_parts[0]) {
-                table[key_parts[0]] = Item::None;
-            }
-            table.get_mut(key_parts[0])?
-        } else {
-            table.get_mut(key_parts[0])?
-        };
-
-        for &part in &key_parts[1..] {
-            if create && !current.as_table_like().is_some() {
-                *current = toml_edit::table();
-            }
-            current = current.as_table_like_mut()?.get_mut(part)?;
-        }
-        Some(current)
     }
 
     /// List all values for a key
@@ -254,37 +214,14 @@ impl Config {
             ConfigError::InvalidOperation(format!("'{}' is not an array", key))
         })?;
 
-        // Remove matching values
-        for value_to_remove in &values {
-            let mut i = 0;
-            while i < array.len() {
-                if let Some(s) = array.get(i).and_then(|v| v.as_str()) {
-                    if s == value_to_remove {
-                        array.remove(i);
-                        continue;
-                    }
-                }
-                i += 1;
-            }
-        }
+        // Use retain for O(n) complexity instead of repeated removals
+        let values_to_remove: std::collections::HashSet<String> = values.into_iter().collect();
+        array.retain(|item| {
+            item.as_str()
+                .map(|s| !values_to_remove.contains(s))
+                .unwrap_or(true)
+        });
 
         Ok(())
     }
-}
-
-/// Create a new empty config file
-pub fn create_empty_config() -> Result<()> {
-    let c2rust_dir = Config::find_c2rust_dir()?;
-    let config_path = c2rust_dir.join("config.toml");
-
-    if config_path.exists() {
-        return Err(ConfigError::InvalidOperation(
-            "Config file already exists".to_string(),
-        ));
-    }
-
-    // Create a minimal config with [model] section
-    let content = "[model]\n";
-    fs::write(&config_path, content)?;
-    Ok(())
 }
