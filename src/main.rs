@@ -2,7 +2,7 @@ mod config;
 mod error;
 mod operations;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use config::Config;
 use error::ConfigError;
 use operations::Operation;
@@ -12,67 +12,59 @@ use operations::Operation;
 #[command(about = "Configuration management tool for c2rust translation work")]
 struct Cli {
     #[command(subcommand)]
-    mode: Mode,
+    command: Commands,
 }
 
 #[derive(Subcommand)]
-enum Mode {
+enum Commands {
+    /// Configuration management
+    Config(ConfigArgs),
+}
+
+#[derive(Args)]
+struct ConfigArgs {
     /// Global configuration (e.g., compiler settings)
-    #[command(name = "global")]
-    Global {
-        #[command(subcommand)]
-        operation: OperationCmd,
-    },
-    /// Model-related configuration
-    #[command(name = "model")]
-    Model {
-        #[command(subcommand)]
-        operation: OperationCmd,
-    },
-    /// Build/clean/test-related configuration
-    #[command(name = "make")]
-    Make {
-        /// Feature name (default: "default")
-        #[arg(long)]
-        feature: Option<String>,
-        #[command(subcommand)]
-        operation: OperationCmd,
-    },
-}
+    #[arg(long, group = "mode")]
+    global: bool,
 
-#[derive(Subcommand)]
-enum OperationCmd {
+    /// Model-related configuration
+    #[arg(long, group = "mode")]
+    model: bool,
+
+    /// Build/clean/test-related configuration
+    #[arg(long, group = "mode")]
+    make: bool,
+
+    /// Feature name (default: "default") - only for --make
+    #[arg(long, requires = "make")]
+    feature: Option<String>,
+
     /// Set key-value(s)
-    Set {
-        /// Key to set
-        key: String,
-        /// Values to set
-        #[arg(allow_hyphen_values = true)]
-        values: Vec<String>,
-    },
+    #[arg(long, group = "operation")]
+    set: bool,
+
     /// Delete key-value
-    Unset {
-        /// Key to unset
-        key: String,
-    },
+    #[arg(long, group = "operation")]
+    unset: bool,
+
     /// Add value(s) to array key
-    Add {
-        /// Key to add values to
-        key: String,
-        /// Values to add
-        #[arg(allow_hyphen_values = true)]
-        values: Vec<String>,
-    },
+    #[arg(long, group = "operation")]
+    add: bool,
+
     /// Delete value(s) from array key
-    Del {
-        /// Key to delete values from
-        key: String,
-        /// Values to delete
-        #[arg(allow_hyphen_values = true)]
-        values: Vec<String>,
-    },
+    #[arg(long, group = "operation")]
+    del: bool,
+
     /// List all values in the section (array elements displayed on separate lines)
-    List,
+    #[arg(long, group = "operation")]
+    list: bool,
+
+    /// Key to operate on
+    key: Option<String>,
+
+    /// Values to set, add, or delete
+    #[arg(allow_hyphen_values = true)]
+    values: Vec<String>,
 }
 
 fn main() {
@@ -87,59 +79,79 @@ fn run() -> Result<(), ConfigError> {
 
     let config = Config::load()?;
 
-    match cli.mode {
-        Mode::Global { operation } => {
-            execute_operation(config, "global", operation)?;
-        }
-        Mode::Model { operation } => {
-            execute_operation(config, "model", operation)?;
-        }
-        Mode::Make { feature, operation } => {
-            let feature_name = feature.unwrap_or_else(|| "default".to_string()).to_lowercase();
-            let section = format!("feature.{}", feature_name);
-            execute_operation(config, &section, operation)?;
+    match cli.command {
+        Commands::Config(args) => {
+            // Validate that exactly one mode is selected
+            let mode_count = [args.global, args.model, args.make].iter().filter(|&&x| x).count();
+            if mode_count != 1 {
+                return Err(ConfigError::InvalidOperation(
+                    "Exactly one of --global, --model, or --make must be specified".to_string(),
+                ));
+            }
+
+            // Validate that exactly one operation is selected
+            let op_count = [args.set, args.unset, args.add, args.del, args.list].iter().filter(|&&x| x).count();
+            if op_count != 1 {
+                return Err(ConfigError::InvalidOperation(
+                    "Exactly one of --set, --unset, --add, --del, or --list must be specified".to_string(),
+                ));
+            }
+
+            // Determine the section based on mode flags
+            let section = if args.global {
+                "global".to_string()
+            } else if args.model {
+                "model".to_string()
+            } else if args.make {
+                let feature_name = args.feature.unwrap_or_else(|| "default".to_string()).to_lowercase();
+                format!("feature.{}", feature_name)
+            } else {
+                unreachable!("Mode validation ensures one of global/model/make is set");
+            };
+
+            // Execute the operation based on operation flags
+            if args.set {
+                let key = args.key.ok_or_else(|| {
+                    ConfigError::InvalidOperation("--set requires a key".to_string())
+                })?;
+                if args.values.is_empty() {
+                    return Err(ConfigError::InvalidOperation(
+                        "No values provided for set operation".to_string(),
+                    ));
+                }
+                operations::execute(config, Operation::Set, &section, &key, args.values)?;
+            } else if args.unset {
+                let key = args.key.ok_or_else(|| {
+                    ConfigError::InvalidOperation("--unset requires a key".to_string())
+                })?;
+                operations::execute(config, Operation::Unset, &section, &key, vec![])?;
+            } else if args.add {
+                let key = args.key.ok_or_else(|| {
+                    ConfigError::InvalidOperation("--add requires a key".to_string())
+                })?;
+                if args.values.is_empty() {
+                    return Err(ConfigError::InvalidOperation(
+                        "No values provided for add operation".to_string(),
+                    ));
+                }
+                operations::execute(config, Operation::Add, &section, &key, args.values)?;
+            } else if args.del {
+                let key = args.key.ok_or_else(|| {
+                    ConfigError::InvalidOperation("--del requires a key".to_string())
+                })?;
+                if args.values.is_empty() {
+                    return Err(ConfigError::InvalidOperation(
+                        "No values provided for del operation".to_string(),
+                    ));
+                }
+                operations::execute(config, Operation::Del, &section, &key, args.values)?;
+            } else if args.list {
+                operations::execute(config, Operation::List, &section, "", vec![])?;
+            } else {
+                unreachable!("Operation validation ensures one operation is set");
+            }
         }
     }
 
-    Ok(())
-}
-
-fn execute_operation(
-    config: Config,
-    section: &str,
-    operation: OperationCmd,
-) -> Result<(), ConfigError> {
-    match operation {
-        OperationCmd::Set { key, values } => {
-            if values.is_empty() {
-                return Err(ConfigError::InvalidOperation(
-                    "No values provided for set operation".to_string(),
-                ));
-            }
-            operations::execute(config, Operation::Set, section, &key, values)?;
-        }
-        OperationCmd::Unset { key } => {
-            operations::execute(config, Operation::Unset, section, &key, vec![])?;
-        }
-        OperationCmd::Add { key, values } => {
-            if values.is_empty() {
-                return Err(ConfigError::InvalidOperation(
-                    "No values provided for add operation".to_string(),
-                ));
-            }
-            operations::execute(config, Operation::Add, section, &key, values)?;
-        }
-        OperationCmd::Del { key, values } => {
-            if values.is_empty() {
-                return Err(ConfigError::InvalidOperation(
-                    "No values provided for del operation".to_string(),
-                ));
-            }
-            operations::execute(config, Operation::Del, section, &key, values)?;
-        }
-        OperationCmd::List => {
-            operations::execute(config, Operation::List, section, "", vec![])?;
-        }
-    }
     Ok(())
 }
