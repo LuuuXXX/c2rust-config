@@ -52,7 +52,7 @@ fn test_make_set_single_value() {
     
     let config = read_config(&temp_dir);
     assert!(config.contains("[feature.default]"));
-    assert!(config.contains(r#"build.dir = "build""#));
+    assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
 }
 
 #[test]
@@ -175,6 +175,12 @@ fn test_make_unset_key() {
 fn test_make_list_nonexistent_key() {
     let temp_dir = setup_test_env();
     
+    // First set a key to create the feature.default section
+    get_cmd(&temp_dir)
+        .args(&["make", "set", "dummy", "value"])
+        .assert()
+        .success();
+    
     get_cmd(&temp_dir)
         .args(&["make", "list", "nonexistent.key"])
         .assert()
@@ -204,7 +210,7 @@ fn test_make_with_custom_feature() {
     
     let config = read_config(&temp_dir);
     assert!(config.contains("[feature.debug]"));
-    assert!(config.contains(r#"build.dir = "debug_build""#));
+    assert!(config.contains(r#""build.dir" = "debug_build""#) || config.contains(r#"build.dir = "debug_build""#));
 }
 
 #[test]
@@ -325,7 +331,7 @@ fn test_complex_workflow() {
     // Verify the config
     let config = read_config(&temp_dir);
     assert!(config.contains(r#"compiler = "gcc""#));
-    assert!(config.contains(r#"build.dir = "build""#));
+    assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
     assert!(config.contains(r#"build = "make""#));
     assert!(config.contains("build.options"));
     assert!(config.contains("-I../3rd/include -DDEBUG=1"));

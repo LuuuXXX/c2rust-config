@@ -41,6 +41,7 @@ enum OperationCmd {
         /// Key to set
         key: String,
         /// Values to set
+        #[arg(allow_hyphen_values = true)]
         values: Vec<String>,
     },
     /// Delete key-value
@@ -53,6 +54,7 @@ enum OperationCmd {
         /// Key to add values to
         key: String,
         /// Values to add
+        #[arg(allow_hyphen_values = true)]
         values: Vec<String>,
     },
     /// Delete value(s) from array key
@@ -60,6 +62,7 @@ enum OperationCmd {
         /// Key to delete values from
         key: String,
         /// Values to delete
+        #[arg(allow_hyphen_values = true)]
         values: Vec<String>,
     },
     /// List all values for a key

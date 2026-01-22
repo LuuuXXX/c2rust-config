@@ -52,16 +52,37 @@ impl Config {
 
     /// Get the table for a specific section (model or feature.xxx)
     fn get_table_mut(&mut self, section: &str, create: bool) -> Result<&mut Table> {
-        if !self.document.contains_key(section) {
-            if !create {
-                return Err(ConfigError::FeatureNotFound(section.to_string()));
-            }
-            self.document[section] = toml_edit::table();
+        // Handle dotted keys by splitting them
+        let parts: Vec<&str> = section.split('.').collect();
+        
+        if parts.is_empty() {
+            return Err(ConfigError::InvalidOperation("Empty section name".to_string()));
         }
-
-        self.document[section]
-            .as_table_mut()
-            .ok_or_else(|| ConfigError::TomlParseError(format!("'{}' is not a table", section)))
+        
+        // Navigate to the correct table
+        let mut current_table = self.document.as_table_mut();
+        
+        for (i, &part) in parts.iter().enumerate() {
+            let is_last = i == parts.len() - 1;
+            
+            if !current_table.contains_key(part) {
+                if !create {
+                    return Err(ConfigError::FeatureNotFound(section.to_string()));
+                }
+                
+                // Create new table
+                let mut new_table = toml_edit::Table::new();
+                new_table.set_implicit(!is_last); // Last one should be explicit (has [header])
+                current_table.insert(part, toml_edit::Item::Table(new_table));
+            }
+            
+            current_table = current_table
+                .get_mut(part)
+                .and_then(|item| item.as_table_mut())
+                .ok_or_else(|| ConfigError::TomlParseError(format!("'{}' is not a table", part)))?;
+        }
+        
+        Ok(current_table)
     }
 
     /// Get nested value from table using dot-separated key
@@ -107,14 +128,23 @@ impl Config {
 
     /// List all values for a key
     pub fn list(&self, section: &str, key: &str) -> Result<Vec<String>> {
-        let table = self
-            .document
-            .get(section)
-            .and_then(|item| item.as_table())
+        // Handle dotted section names
+        let section_parts: Vec<&str> = section.split('.').collect();
+        
+        let mut current_item = self.document.as_item();
+        for &part in &section_parts {
+            current_item = current_item
+                .get(part)
+                .ok_or_else(|| ConfigError::FeatureNotFound(section.to_string()))?;
+        }
+        
+        let table = current_item
+            .as_table()
             .ok_or_else(|| ConfigError::FeatureNotFound(section.to_string()))?;
 
-        let key_parts: Vec<&str> = key.split('.').collect();
-        let value = Self::get_nested(table, &key_parts)
+        // Use dotted key directly
+        let value = table
+            .get(key)
             .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
 
         let mut results = Vec::new();
@@ -154,6 +184,7 @@ impl Config {
     }
 
     /// Helper to set nested values (static method)
+    /// Uses dotted keys (e.g., build.dir = "value") instead of nested tables
     fn set_nested_static(table: &mut Table, key_parts: &[&str], value: Item) -> Result<()> {
         if key_parts.is_empty() {
             return Err(ConfigError::InvalidOperation("Empty key".to_string()));
@@ -161,71 +192,42 @@ impl Config {
 
         if key_parts.len() == 1 {
             table[key_parts[0]] = value;
-            return Ok(());
+        } else {
+            // For multi-part keys, create a dotted key entry
+            // The format will be: build.dir = "value" (or with quotes if needed)
+            let dotted_key = key_parts.join(".");
+            table[&dotted_key] = value;
         }
-
-        // Navigate to parent and set the value
-        let parent_parts = &key_parts[..key_parts.len() - 1];
-        let last_key = key_parts[key_parts.len() - 1];
-
-        let mut current = table;
-        for &part in parent_parts {
-            if !current.contains_key(part) {
-                current[part] = toml_edit::table();
-            }
-            current = current[part]
-                .as_table_mut()
-                .ok_or_else(|| ConfigError::InvalidOperation("Not a table".to_string()))?;
-        }
-
-        current[last_key] = value;
         Ok(())
     }
 
     /// Unset (remove) a key
     pub fn unset(&mut self, section: &str, key: &str) -> Result<()> {
         let table = self.get_table_mut(section, false)?;
-        let key_parts: Vec<&str> = key.split('.').collect();
-
-        if key_parts.len() == 1 {
-            table.remove(key_parts[0]);
-            return Ok(());
-        }
-
-        // Navigate to parent and remove the key
-        let parent_parts = &key_parts[..key_parts.len() - 1];
-        let last_key = key_parts[key_parts.len() - 1];
-
-        let mut current = table;
-        for &part in parent_parts {
-            current = current
-                .get_mut(part)
-                .and_then(|item| item.as_table_mut())
-                .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
-        }
-
-        current.remove(last_key);
+        
+        // For dotted keys, just remove using the full dotted key
+        let dotted_key = key;
+        table.remove(dotted_key);
         Ok(())
     }
 
     /// Add values to an array key
     pub fn add(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
-        let key_parts: Vec<&str> = key.split('.').collect();
-
         // First check if key exists, if not create it
         {
             let table = self.get_table_mut(section, true)?;
-            if Self::get_nested(table, &key_parts).is_none() {
-                // Create new nested structure with empty array
+            if !table.contains_key(key) {
+                // Create new array with dotted key
                 let empty_array = Item::Value(toml_edit::Array::new().into());
-                Self::set_nested_static(table, &key_parts, empty_array)?;
+                table[key] = empty_array;
             }
         }
 
         // Now add values to the array
         {
             let table = self.get_table_mut(section, false)?;
-            let item = Self::get_nested_mut(table, &key_parts, false)
+            let item = table
+                .get_mut(key)
                 .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
 
             let array = item.as_array_mut().ok_or_else(|| {
@@ -243,9 +245,9 @@ impl Config {
     /// Delete values from an array key
     pub fn del(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
         let table = self.get_table_mut(section, false)?;
-        let key_parts: Vec<&str> = key.split('.').collect();
 
-        let item = Self::get_nested_mut(table, &key_parts, false)
+        let item = table
+            .get_mut(key)
             .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
 
         let array = item.as_array_mut().ok_or_else(|| {
