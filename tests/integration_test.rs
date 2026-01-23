@@ -757,4 +757,58 @@ fn test_list_all_vs_specific_key() {
         .stdout("build\n");
 }
 
+#[test]
+fn test_list_non_string_values() {
+    let temp_dir = setup_test_env();
+    
+    // Manually create a config with non-string values (integer, boolean)
+    let config_path = temp_dir.path().join(".c2rust/config.toml");
+    let config_content = r#"[global]
+
+[model]
+
+[feature.default]
+port = 8080
+debug = true
+ratio = 3.14
+"#;
+    fs::write(&config_path, config_content).unwrap();
+    
+    // List integer value
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "port"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "8080\n");
+    
+    // List boolean value
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "debug"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "true\n");
+    
+    // List float value
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "ratio"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "3.14\n");
+}
+
 

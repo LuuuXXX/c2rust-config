@@ -123,10 +123,17 @@ impl Config {
             for item in array.iter() {
                 if let Some(s) = item.as_str() {
                     values.push(s.to_string());
+                } else {
+                    // Convert non-string array elements to string representation
+                    values.push(item.to_string());
                 }
             }
         } else if let Some(s) = value.as_str() {
             values.push(s.to_string());
+        } else {
+            // Handle other value types (integer, float, boolean, datetime, table)
+            // by converting them to their string representation
+            values.push(value.to_string());
         }
         
         Ok(values)
