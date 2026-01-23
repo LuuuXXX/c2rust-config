@@ -311,26 +311,14 @@ fn test_complex_workflow() {
         .assert()
         .success();
     
-    // Add build options
+    // Set clean directory and command
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.options", "-I../3rd/include -DDEBUG=1"])
+        .args(&["config", "--make", "--set", "clean.dir", "build"])
         .assert()
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.options", "-I../3rd/include"])
-        .assert()
-        .success();
-    
-    // Add files for first option set
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.files.0", "main.c", "debug.c", "common.c"])
-        .assert()
-        .success();
-    
-    // Add files for second option set
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.files.1", "main.c", "release.c", "common.c"])
+        .args(&["config", "--make", "--set", "clean", "make clean"])
         .assert()
         .success();
     
@@ -350,14 +338,10 @@ fn test_complex_workflow() {
     assert!(config.contains(r#"compiler = "gcc""#));
     assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
     assert!(config.contains(r#"build = "make""#));
-    assert!(config.contains("build.options"));
-    assert!(config.contains("-I../3rd/include -DDEBUG=1"));
-    assert!(config.contains("-I../3rd/include"));
-    assert!(config.contains("build.files.0"));
-    assert!(config.contains("main.c"));
-    assert!(config.contains("debug.c"));
-    assert!(config.contains("release.c"));
-    assert!(config.contains("common.c"));
+    assert!(config.contains(r#""clean.dir" = "build""#) || config.contains(r#"clean.dir = "build""#));
+    assert!(config.contains(r#"clean = "make clean""#));
+    assert!(config.contains(r#""test.dir" = "build""#) || config.contains(r#"test.dir = "build""#));
+    assert!(config.contains(r#"test = "make test""#));
 }
 
 #[test]
@@ -435,71 +419,6 @@ fn test_feature_complete_no_warning() {
     
     let stderr = String::from_utf8(output).unwrap();
     assert!(!stderr.contains("missing required keys"));
-}
-
-#[test]
-fn test_build_files_exceeds_options_warning() {
-    let temp_dir = setup_test_env();
-    
-    // Set up a complete feature first
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "build.dir", "build"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "build", "make"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "clean.dir", "build"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "clean", "make clean"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "test.dir", "build"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "test", "make test"])
-        .assert()
-        .success();
-    
-    // Add only 2 build.options
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.options", "-O2"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.options", "-g"])
-        .assert()
-        .success();
-    
-    // Add build.files.0 and build.files.1 (valid)
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.files.0", "main.c"])
-        .assert()
-        .success();
-    get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.files.1", "test.c"])
-        .assert()
-        .success();
-    
-    // Add build.files.2 (should warn - index 2 exceeds array of length 2)
-    let output = get_cmd(&temp_dir)
-        .args(&["config", "--make", "--add", "build.files.2", "extra.c"])
-        .assert()
-        .success()
-        .get_output()
-        .stderr
-        .clone();
-    
-    let stderr = String::from_utf8(output).unwrap();
-    assert!(stderr.contains("Warning"));
-    assert!(stderr.contains("build.files.2"));
-    assert!(stderr.contains("build.options"));
 }
 
 #[test]

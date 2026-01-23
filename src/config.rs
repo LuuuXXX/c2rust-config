@@ -242,37 +242,6 @@ impl Config {
             ));
         }
 
-        // Validate build.files.X count doesn't exceed build.options length
-        if let Some(options_value) = table.get("build.options") {
-            if let Some(options_array) = options_value.as_array() {
-                let options_count = options_array.len();
-                
-                // Track maximum build.files.X index
-                let mut max_files_index: Option<usize> = None;
-                for key in table.keys() {
-                    if key.starts_with("build.files.") {
-                        if let Some(index_str) = key.strip_prefix("build.files.") {
-                            if let Ok(index) = index_str.parse::<usize>() {
-                                max_files_index =
-                                    Some(max_files_index.map_or(index, |m| m.max(index)));
-                            }
-                        }
-                    }
-                }
-                
-                if let Some(idx) = max_files_index {
-                    if idx >= options_count {
-                        warnings.push(format!(
-                            "Warning: Feature '{}' has build.files.{} but only {} build.options entries. build.files.X indices should not exceed build.options array length.",
-                            section,
-                            idx,
-                            options_count
-                        ));
-                    }
-                }
-            }
-        }
-
         warnings
     }
 }
