@@ -29,13 +29,6 @@ c2rust-config make set build.dir "build"
 # Set multiple values (creates an array)
 c2rust-config make set build "make"
 
-# Add values to an array
-c2rust-config make add build.options "-I../3rd/include -DDEBUG=1"
-c2rust-config make add build.files.0 "main.c" "debug.c" "common.c"
-
-# Delete values from an array
-c2rust-config make del build.files.0 "debug.c"
-
 # List all values in the section
 c2rust-config make list
 
@@ -74,32 +67,24 @@ c2rust-config model list
 The configuration is stored in `.c2rust/config.toml`:
 
 ```toml
-# Global configuration
 [global]
+# 一般无需配置.
 compiler = ["gcc"]
 
-# Model-related configuration
+# 大模型相关的配置
 [model]
 
-# Feature-specific configuration
+#具体feature的配置
 [feature.default]
-# Relative to project root (.c2rust directory)
+# 相对工程根目录，即.c2rust所在目录的相对路径
 "clean.dir" = "build"
 clean = "make clean"
-# Relative to project root
+# 相对工程根目录，即.c2rust所在目录的相对路径
 "test.dir" = "build"
 test = "make test"
-# Relative to project root
+# 相对工程根目录，即.c2rust所在目录的相对路径
 "build.dir" = "build"
 build = "make"
-# Build options for extracting target files to translate
-# Different files may have different compilation options
-# One build can generate both debug/release binaries
-"build.options" = ["-I../3rd/include -DDEBUG=1", "-I../3rd/include"]
-# files.x index corresponds to options index
-# Each file list corresponds to one set of compilation options
-"build.files.0" = ["main.c", "debug.c", "common.c"]
-"build.files.1" = ["main.c", "release.c", "common.c"]
 ```
 
 ## Requirements
@@ -138,12 +123,6 @@ The tool validates feature configurations and provides warnings for:
    - `build`
    
    If some but not all of these keys are present, a warning will be displayed listing the missing keys.
-
-2. **Build Files Index Validation**: The number of `build.files.X` entries should not exceed the length of the `build.options` array. For example, if you have 2 entries in `build.options`, you should only use `build.files.0` and `build.files.1`. Using `build.files.2` or higher will generate a warning.
-
-**Optional Keys**: The following keys are optional and do not trigger warnings:
-- `build.options`
-- `build.files.0`, `build.files.1`, etc.
 
 ## Development
 
