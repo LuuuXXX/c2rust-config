@@ -44,14 +44,14 @@ pub fn execute(
             save_and_validate(&mut config, section)?;
         }
         Operation::List => {
-            // 如果提供了 key，只输出该 key 的值
+            // If a key is provided, only output that key's values
             if !key.is_empty() {
                 let value = config.list(section, key)?;
                 for v in value {
                     println!("{}", v);
                 }
             } else {
-                // 否则列出所有配置
+                // Otherwise, list all configurations
                 let results = config.list_all(section)?;
                 for (key, values) in results {
                     if values.len() == 1 {

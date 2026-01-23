@@ -177,7 +177,7 @@ fn run() -> Result<(), ConfigError> {
                     operations::execute(config, Operation::Del, &section, &key, args.values)?;
                 }
                 Operation::List => {
-                    // --list 支持可选的 key 参数
+                    // --list supports an optional key parameter
                     let key = args.key.unwrap_or_default();
                     operations::execute(config, Operation::List, &section, &key, vec![])?;
                 }
