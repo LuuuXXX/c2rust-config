@@ -567,6 +567,151 @@ fn test_list_with_arrays() {
 // ===== Validation Tests =====
 
 #[test]
+fn test_list_with_key_single_value() {
+    let temp_dir = setup_test_env();
+    
+    // Set up complete feature configuration
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build", "make"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "clean.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "clean", "make clean"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "test.dir", "test"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "test", "make test"])
+        .assert()
+        .success();
+    
+    // Query specific single-value keys
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "build.dir"])
+        .assert()
+        .success()
+        .stdout(predicate::str::diff("build\n"));
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "build"])
+        .assert()
+        .success()
+        .stdout(predicate::str::diff("make\n"));
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "clean.dir"])
+        .assert()
+        .success()
+        .stdout(predicate::str::diff("build\n"));
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "clean"])
+        .assert()
+        .success()
+        .stdout(predicate::str::diff("make clean\n"));
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "test.dir"])
+        .assert()
+        .success()
+        .stdout(predicate::str::diff("test\n"));
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "test"])
+        .assert()
+        .success()
+        .stdout(predicate::str::diff("make test\n"));
+}
+
+#[test]
+fn test_list_with_key_array_values() {
+    let temp_dir = setup_test_env();
+    
+    // Add array values
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--add", "compiler", "gcc", "clang", "msvc"])
+        .assert()
+        .success();
+    
+    // Query array key - each value should be on its own line
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "compiler"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "gcc\nclang\nmsvc\n");
+}
+
+#[test]
+fn test_list_with_nonexistent_key() {
+    let temp_dir = setup_test_env();
+    
+    // Set up feature with some data
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    // Query non-existent key
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "nonexistent"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("key 'nonexistent' not found"));
+}
+
+#[test]
+fn test_list_without_key_unchanged() {
+    let temp_dir = setup_test_env();
+    
+    // Set up some data
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build", "make"])
+        .assert()
+        .success();
+    
+    // List without key should show all (existing behavior)
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert!(stdout.contains("build.dir = build"));
+    assert!(stdout.contains("build = make"));
+}
+
+// ===== Validation Tests =====
+
+#[test]
 fn test_validation_no_mode_specified() {
     let temp_dir = setup_test_env();
     

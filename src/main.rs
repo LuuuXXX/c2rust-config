@@ -177,7 +177,8 @@ fn run() -> Result<(), ConfigError> {
                     operations::execute(config, Operation::Del, &section, &key, args.values)?;
                 }
                 Operation::List => {
-                    operations::execute(config, Operation::List, &section, "", vec![])?;
+                    let key = args.key.unwrap_or_default();
+                    operations::execute(config, Operation::List, &section, &key, vec![])?;
                 }
             }
         }
