@@ -111,6 +111,34 @@ impl Config {
         Ok(results)
     }
 
+    /// Get values for a specific key in a section
+    pub fn list(&self, section: &str, key: &str) -> Result<Vec<String>> {
+        let table = self.get_table(section)?;
+        
+        let value = table.get(key)
+            .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
+        
+        let mut values = Vec::new();
+        if let Some(array) = value.as_array() {
+            for item in array.iter() {
+                if let Some(s) = item.as_str() {
+                    values.push(s.to_string());
+                } else {
+                    // Convert non-string array elements to string representation
+                    values.push(item.to_string());
+                }
+            }
+        } else if let Some(s) = value.as_str() {
+            values.push(s.to_string());
+        } else {
+            // Handle other value types (integer, float, boolean, datetime, table)
+            // by converting them to their string representation
+            values.push(value.to_string());
+        }
+        
+        Ok(values)
+    }
+
     /// Set a key to one or more values
     pub fn set(&mut self, section: &str, key: &str, values: Vec<String>) -> Result<()> {
         let table = self.get_table_mut(section, true)?;

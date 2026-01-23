@@ -642,4 +642,173 @@ fn test_validation_feature_with_make_works() {
         .success();
 }
 
+// ===== Tests for Optional Key Parameter in --list Operation =====
+
+#[test]
+fn test_list_specific_key_single_value() {
+    let temp_dir = setup_test_env();
+    
+    // Set up a configuration
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "clean", "make clean"])
+        .assert()
+        .success();
+    
+    // List specific key - should output only the value
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "build.dir"])
+        .assert()
+        .success()
+        .stdout("build\n");
+    
+    // List another specific key
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "clean"])
+        .assert()
+        .success()
+        .stdout("make clean\n");
+}
+
+#[test]
+fn test_list_specific_key_array_values() {
+    let temp_dir = setup_test_env();
+    
+    // Set up array configuration
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--add", "build.files.0", "main.c", "test.c", "common.c"])
+        .assert()
+        .success();
+    
+    // List specific key with array - should output each value on a separate line
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "build.files.0"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "main.c\ntest.c\ncommon.c\n");
+}
+
+#[test]
+fn test_list_nonexistent_key() {
+    let temp_dir = setup_test_env();
+    
+    // Set up some configuration
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    // Try to list non-existent key - should fail with KeyNotFound error
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "nonexistent.key"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("key 'nonexistent.key' not found"));
+}
+
+#[test]
+fn test_list_all_vs_specific_key() {
+    let temp_dir = setup_test_env();
+    
+    // Set up multiple configurations
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "clean.dir", "build"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "test.dir", "test"])
+        .assert()
+        .success();
+    
+    // List all - should show all keys with "key = value" format
+    let output_all = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout_all = String::from_utf8(output_all).unwrap();
+    assert!(stdout_all.contains("build.dir = build"));
+    assert!(stdout_all.contains("clean.dir = build"));
+    assert!(stdout_all.contains("test.dir = test"));
+    
+    // List specific key - should only show value
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "build.dir"])
+        .assert()
+        .success()
+        .stdout("build\n");
+}
+
+#[test]
+fn test_list_non_string_values() {
+    let temp_dir = setup_test_env();
+    
+    // Manually create a config with non-string values (integer, boolean)
+    let config_path = temp_dir.path().join(".c2rust/config.toml");
+    let config_content = r#"[global]
+
+[model]
+
+[feature.default]
+port = 8080
+debug = true
+ratio = 3.14
+"#;
+    fs::write(&config_path, config_content).unwrap();
+    
+    // List integer value
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "port"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "8080\n");
+    
+    // List boolean value
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "debug"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "true\n");
+    
+    // List float value
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list", "ratio"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert_eq!(stdout, "3.14\n");
+}
+
 

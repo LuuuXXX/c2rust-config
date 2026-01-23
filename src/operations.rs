@@ -44,16 +44,25 @@ pub fn execute(
             save_and_validate(&mut config, section)?;
         }
         Operation::List => {
-            let results = config.list_all(section)?;
-            for (key, values) in results {
-                if values.len() == 1 {
-                    println!("{} = {}", key, values[0]);
-                } else {
-                    println!("{} = [", key);
-                    for value in values {
-                        println!("  {}", value);
+            // If a key is provided, only output that key's values
+            if !key.is_empty() {
+                let value = config.list(section, key)?;
+                for v in value {
+                    println!("{}", v);
+                }
+            } else {
+                // Otherwise, list all configurations
+                let results = config.list_all(section)?;
+                for (key, values) in results {
+                    if values.len() == 1 {
+                        println!("{} = {}", key, values[0]);
+                    } else {
+                        println!("{} = [", key);
+                        for value in values {
+                            println!("  {}", value);
+                        }
+                        println!("]");
                     }
-                    println!("]");
                 }
             }
         }
