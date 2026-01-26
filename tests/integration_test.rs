@@ -852,4 +852,54 @@ fn test_set_single_key_no_duplicates() {
     assert!(config.contains(r#""build.dir" = "release""#) || config.contains(r#"build.dir = "release""#));
 }
 
+#[test]
+fn test_deeply_nested_structure_flattening() {
+    let temp_dir = TempDir::new().unwrap();
+    let c2rust_dir = temp_dir.path().join(".c2rust");
+    fs::create_dir(&c2rust_dir).unwrap();
+    
+    // Create a config with deeply nested structure
+    let config_path = c2rust_dir.join("config.toml");
+    let config_content = r#"[global]
+
+[model]
+
+[feature.default.build.options]
+debug = true
+verbose = false
+"#;
+    fs::write(&config_path, config_content).unwrap();
+    
+    // List should work with deeply nested structure
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--make", "--list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    
+    let stdout = String::from_utf8(output).unwrap();
+    assert!(stdout.contains("build.options.debug = true"));
+    assert!(stdout.contains("build.options.verbose = false"));
+    
+    // Set a value - should flatten the structure
+    get_cmd(&temp_dir)
+        .args(&["config", "--make", "--set", "build.options.debug", "false"])
+        .assert()
+        .success();
+    
+    let config = read_config(&temp_dir);
+    
+    // Should have flattened structure now
+    assert!(config.contains("[feature.default]"));
+    
+    // Should NOT have nested sections
+    assert!(!config.contains("[feature.default.build"));
+    
+    // Should have dotted keys
+    assert!(config.contains(r#""build.options.debug" = "false""#) || config.contains(r#"build.options.debug = "false""#));
+    assert!(config.contains(r#""build.options.verbose" = false"#) || config.contains(r#"build.options.verbose = false"#));
+}
+
 
