@@ -161,8 +161,9 @@ impl Config {
             } else if let Some(s) = value.as_str() {
                 values.push(s.to_string());
             } else {
-                // Handle other value types (integer, float, boolean, datetime, table)
-                // by converting them to their string representation
+                // Handle other scalar value types (integer, float, boolean, datetime)
+                // by converting them to their string representation. Tables are
+                // flattened in Config::load(), so they should not appear here.
                 values.push(value.to_string());
             }
             if !values.is_empty() {

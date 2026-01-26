@@ -755,7 +755,7 @@ fn test_set_override_existing_value() {
     // Verify override worked - should only have new value
     let config = read_config(&temp_dir);
     assert!(config.contains(r#""build.dir" = "new_build""#) || config.contains(r#"build.dir = "new_build""#));
-    assert!(!config.contains(r#"= "build""#) || config.contains(r#"= "new_build""#));
+    assert!(!config.contains(r#"= "build""#));
 }
 
 #[test]
