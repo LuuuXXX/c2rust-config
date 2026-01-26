@@ -46,11 +46,11 @@ c2rust-config config --global --set compiler "gcc"
 
 # 设置完整的构建配置（默认特性）
 c2rust-config config --make --set build.dir "build"
-c2rust-config config --make --set build "make"
+c2rust-config config --make --set build.cmd "make"
 c2rust-config config --make --set clean.dir "build"
-c2rust-config config --make --set clean "make clean"
+c2rust-config config --make --set clean.cmd "make clean"
 c2rust-config config --make --set test.dir "build"
-c2rust-config config --make --set test "make test"
+c2rust-config config --make --set test.cmd "make test"
 ```
 
 #### 单独操作
@@ -68,7 +68,7 @@ c2rust-config config --model --list
 
 # 构建配置操作
 c2rust-config config --make --set build.dir "build"
-c2rust-config config --make --set build "make"
+c2rust-config config --make --set build.cmd "make"
 c2rust-config config --make --list
 
 # 删除一个键
@@ -88,10 +88,10 @@ c2rust-config config --make --del build.flags "-Wall"
 ```bash
 # 使用特定特性
 c2rust-config config --make --feature debug --set build.dir "debug_build"
-c2rust-config config --make --feature debug --set build "make DEBUG=1"
+c2rust-config config --make --feature debug --set build.cmd "make DEBUG=1"
 
 c2rust-config config --make --feature release --set build.dir "release_build"
-c2rust-config config --make --feature release --set build "make RELEASE=1"
+c2rust-config config --make --feature release --set build.cmd "make RELEASE=1"
 
 # 列出特定特性的配置
 c2rust-config config --make --feature debug --list
@@ -116,19 +116,19 @@ model_name = "gpt-4"
 [feature.default]
 # 路径相对于项目根目录（包含 .c2rust 的目录）
 "clean.dir" = "build"
-clean = "make clean"
+"clean.cmd" = "make clean"
 "test.dir" = "build"
-test = "make test"
+"test.cmd" = "make test"
 "build.dir" = "build"
-build = "make"
+"build.cmd" = "make"
 
 [feature.debug]
 "build.dir" = "debug_build"
-build = "make DEBUG=1"
+"build.cmd" = "make DEBUG=1"
 "clean.dir" = "debug_build"
-clean = "make clean"
+"clean.cmd" = "make clean"
 "test.dir" = "debug_build"
-test = "make test"
+"test.cmd" = "make test"
 ```
 
 ## 使用要求
@@ -162,11 +162,11 @@ EOF
 
 **完整的特性配置**：使用 `--make` 配置特性时，应该一起设置以下所有键以形成完整配置：
 - `clean.dir` - 要清理的目录
-- `clean` - 清理命令
+- `clean.cmd` - 清理命令
 - `test.dir` - 测试目录
-- `test` - 测试命令
+- `test.cmd` - 测试命令
 - `build.dir` - 构建输出目录
-- `build` - 构建命令
+- `build.cmd` - 构建命令
 
 如果存在这些键中的一部分但不是全部，将显示警告，列出缺少的键。
 
@@ -174,15 +174,15 @@ EOF
 ```bash
 # 不完整的配置 - 将显示警告
 c2rust-config config --make --set build.dir "build"
-# Warning: Feature 'feature.default' is missing required keys: clean.dir, clean, test.dir, test, build. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.
+# Warning: Feature 'feature.default' is missing required keys: clean.dir, clean.cmd, test.dir, test.cmd, build.cmd. All of [clean.dir, clean.cmd, test.dir, test.cmd, build.dir, build.cmd] should be configured together.
 
 # 完整的配置 - 无警告
 c2rust-config config --make --set build.dir "build"
-c2rust-config config --make --set build "make"
+c2rust-config config --make --set build.cmd "make"
 c2rust-config config --make --set clean.dir "build"
-c2rust-config config --make --set clean "make clean"
+c2rust-config config --make --set clean.cmd "make clean"
 c2rust-config config --make --set test.dir "build"
-c2rust-config config --make --set test "make test"
+c2rust-config config --make --set test.cmd "make test"
 ```
 
 ## 开发
