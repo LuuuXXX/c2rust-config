@@ -1,50 +1,50 @@
 # c2rust-config
 
-A Rust configuration management tool for c2rust translation work. This tool manages configuration data stored in `.c2rust/config.toml` files.
+一个用于 c2rust 翻译工作的 Rust 配置管理工具。该工具管理存储在 `.c2rust/config.toml` 文件中的配置数据。
 
-## Installation
+## 安装
 
 ```bash
 cargo build --release
-# The binary will be available at target/release/c2rust-config
+# 二进制文件将位于 target/release/c2rust-config
 ```
 
-## Usage
+## 使用方法
 
-The tool provides a `config` subcommand with three configuration modes:
-- `--global`: For global configuration (e.g., compiler settings)
-- `--model`: For model-related configuration (e.g., AI model API keys)
-- `--make`: For build/clean/test-related configuration
+该工具提供一个 `config` 子命令, 包含三种配置模式：
+- `--global`：全局配置（例如编译器设置）
+- `--model`：模型相关配置（例如 AI 模型 API 密钥）
+- `--make`：构建/清理/测试相关配置
 
-### Command Structure
+### 命令结构
 
 ```bash
-c2rust-config config [MODE] [OPERATION] [KEY] [VALUES...]
+c2rust-config config [模式] [操作] [键] [值...]
 ```
 
-**Modes** (exactly one required):
-- `--global`: Global configuration
-- `--model`: Model configuration
-- `--make`: Build/test configuration
+**模式**（必须指定其中一个）：
+- `--global`：全局配置
+- `--model`：模型配置
+- `--make`：构建/测试配置
 
-**Operations** (exactly one required):
-- `--set KEY VALUE...`: Set key to value(s)
-- `--unset KEY`: Remove a key
-- `--add KEY VALUE...`: Add value(s) to an array key
-- `--del KEY VALUE...`: Remove value(s) from an array key
-- `--list [KEY]`: List all values in the section, or specific key if provided
+**操作**（必须指定其中一个）：
+- `--set 键 值...`：设置键的值
+- `--unset 键`：删除一个键
+- `--add 键 值...`：向数组键添加值
+- `--del 键 值...`：从数组键中删除值
+- `--list [键]`：列出配置节中的所有值，或列出指定键的值
 
-### Basic Examples
+### 基本示例
 
-#### Complete Configuration Example
+#### 完整配置示例
 
-Here's a complete configuration setup with all recommended defaults:
+以下是包含所有推荐默认值的完整配置设置：
 
 ```bash
-# Set up global configuration
+# 设置全局配置
 c2rust-config config --global --set compiler "gcc"
 
-# Set up complete make configuration (default feature)
+# 设置完整的构建配置（默认特性）
 c2rust-config config --make --set build.dir "build"
 c2rust-config config --make --set build "make"
 c2rust-config config --make --set clean.dir "build"
@@ -53,68 +53,68 @@ c2rust-config config --make --set test.dir "build"
 c2rust-config config --make --set test "make test"
 ```
 
-#### Individual Operations
+#### 单独操作
 
 ```bash
-# Global configuration
+# 全局配置
 c2rust-config config --global --set compiler "gcc"
 c2rust-config config --global --add compiler "clang"
 c2rust-config config --global --list
 
-# Model configuration
+# 模型配置
 c2rust-config config --model --set api_key "your-api-key"
 c2rust-config config --model --set model_name "gpt-4"
 c2rust-config config --model --list
 
-# Make configuration operations
+# 构建配置操作
 c2rust-config config --make --set build.dir "build"
 c2rust-config config --make --set build "make"
 c2rust-config config --make --list
 
-# Remove a key
+# 删除一个键
 c2rust-config config --make --unset build.dir
 
-# Array operations
+# 数组操作
 c2rust-config config --make --add build.flags "-O2" "-Wall"
 c2rust-config config --make --del build.flags "-Wall"
 ```
 
-### Features
+### 特性（Features）
 
-Features allow you to maintain multiple configurations for different build scenarios (e.g., debug, release). The default feature is `default`.
+特性允许您为不同的构建场景（例如 debug、release）维护多个配置。默认特性名为 `default`。
 
-**Note**: The `--feature` option can only be used with `--make`.
+**注意**：`--feature` 选项只能与 `--make` 一起使用。
 
 ```bash
-# Use a specific feature
+# 使用特定特性
 c2rust-config config --make --feature debug --set build.dir "debug_build"
 c2rust-config config --make --feature debug --set build "make DEBUG=1"
 
 c2rust-config config --make --feature release --set build.dir "release_build"
 c2rust-config config --make --feature release --set build "make RELEASE=1"
 
-# List configuration for a specific feature
+# 列出特定特性的配置
 c2rust-config config --make --feature debug --list
 ```
 
-Feature names are case-insensitive and will be automatically converted to lowercase.
+特性名称不区分大小写，会自动转换为小写。
 
-## Configuration File Format
+## 配置文件格式
 
-The configuration is stored in `.c2rust/config.toml`:
+配置存储在 `.c2rust/config.toml` 文件中：
 
 ```toml
 [global]
-# Global settings, generally no configuration needed
+# 全局设置，一般无需配置
 compiler = ["gcc"]
 
 [model]
-# AI model related configuration
+# AI 模型相关配置
 api_key = "your-api-key"
 model_name = "gpt-4"
 
 [feature.default]
-# Paths are relative to the project root (the directory containing .c2rust)
+# 路径相对于项目根目录（包含 .c2rust 的目录）
 "clean.dir" = "build"
 clean = "make clean"
 "test.dir" = "build"
@@ -131,11 +131,11 @@ clean = "make clean"
 test = "make test"
 ```
 
-## Requirements
+## 使用要求
 
-- The tool searches for `.c2rust` directory in the current directory only (does not traverse parent directories)
-- The `.c2rust` directory and `config.toml` file must exist in the current directory before running the tool
-- Create them manually if they don't exist:
+- 该工具仅在当前目录中搜索 `.c2rust` 目录（不会遍历父目录）
+- 运行工具之前，当前目录中必须存在 `.c2rust` 目录和 `config.toml` 文件
+- 如果它们不存在，请手动创建：
 
 ```bash
 mkdir .c2rust
@@ -146,37 +146,37 @@ cat > .c2rust/config.toml << 'EOF'
 EOF
 ```
 
-## Error Handling
+## 错误处理
 
-The tool provides clear, hierarchical error messages:
+该工具提供清晰的分层错误消息：
 
-1. **Missing `.c2rust` directory**: Displays an error if the `.c2rust` directory is not found in the current directory
-2. **Missing `config.toml` file**: Displays an error if the config file is not found
-3. **Feature not found**: When attempting to access a non-existent feature
-4. **Key not found**: When attempting to delete or access a non-existent key
-5. **Invalid operations**: When command syntax is incorrect (e.g., missing required parameters)
+1. **缺少 `.c2rust` 目录**：如果当前目录中找不到 `.c2rust` 目录，则显示错误
+2. **缺少 `config.toml` 文件**：如果找不到配置文件，则显示错误
+3. **特性未找到**：尝试访问不存在的特性时
+4. **键未找到**：尝试删除或访问不存在的键时
+5. **无效操作**：命令语法不正确时（例如缺少必需参数）
 
-## Validation and Warnings
+## 验证和警告
 
-The tool validates feature configurations and provides warnings for incomplete configurations:
+该工具会验证特性配置并对不完整的配置发出警告：
 
-**Complete Feature Configuration**: When configuring a feature with `--make`, all of the following keys should be set together for a complete configuration:
-- `clean.dir` - Directory to clean
-- `clean` - Clean command
-- `test.dir` - Directory for testing
-- `test` - Test command
-- `build.dir` - Directory for build output
-- `build` - Build command
+**完整的特性配置**：使用 `--make` 配置特性时，应该一起设置以下所有键以形成完整配置：
+- `clean.dir` - 要清理的目录
+- `clean` - 清理命令
+- `test.dir` - 测试目录
+- `test` - 测试命令
+- `build.dir` - 构建输出目录
+- `build` - 构建命令
 
-If some but not all of these keys are present, a warning will be displayed listing the missing keys.
+如果存在这些键中的一部分但不是全部，将显示警告，列出缺少的键。
 
-Example:
+示例：
 ```bash
-# Incomplete configuration - will show a warning
+# 不完整的配置 - 将显示警告
 c2rust-config config --make --set build.dir "build"
 # Warning: Feature 'feature.default' is missing required keys: clean.dir, clean, test.dir, test, build. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.
 
-# Complete configuration - no warning
+# 完整的配置 - 无警告
 c2rust-config config --make --set build.dir "build"
 c2rust-config config --make --set build "make"
 c2rust-config config --make --set clean.dir "build"
@@ -185,31 +185,31 @@ c2rust-config config --make --set test.dir "build"
 c2rust-config config --make --set test "make test"
 ```
 
-## Development
+## 开发
 
-### Running Tests
+### 运行测试
 
 ```bash
 cargo test
 ```
 
-All tests are integration tests located in `tests/integration_test.rs`.
+所有测试都是集成测试，位于 `tests/integration_test.rs` 中。
 
-### Project Structure
+### 项目结构
 
 ```
 c2rust-config/
 ├── src/
-│   ├── main.rs         # CLI interface and command parsing
-│   ├── config.rs       # Configuration file operations
-│   ├── operations.rs   # Core operations (set, unset, add, del, list)
-│   └── error.rs        # Error handling
+│   ├── main.rs         # CLI 界面和命令解析
+│   ├── config.rs       # 配置文件操作
+│   ├── operations.rs   # 核心操作（set、unset、add、del、list）
+│   └── error.rs        # 错误处理
 ├── tests/
-│   └── integration_test.rs  # Integration tests
+│   └── integration_test.rs  # 集成测试
 ├── Cargo.toml
 └── README.md
 ```
 
-## License
+## 许可证
 
-This project is part of the c2rust translation toolkit.
+此项目是 c2rust 翻译工具包的一部分。
