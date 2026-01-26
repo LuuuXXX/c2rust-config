@@ -36,6 +36,25 @@ c2rust-config config [MODE] [OPERATION] [KEY] [VALUES...]
 
 ### Basic Examples
 
+#### Complete Configuration Example
+
+Here's a complete configuration setup with all recommended defaults:
+
+```bash
+# Set up global configuration
+c2rust-config config --global --set compiler "gcc"
+
+# Set up complete make configuration (default feature)
+c2rust-config config --make --set build.dir "build"
+c2rust-config config --make --set build "make"
+c2rust-config config --make --set clean.dir "build"
+c2rust-config config --make --set clean "make clean"
+c2rust-config config --make --set test.dir "build"
+c2rust-config config --make --set test "make test"
+```
+
+#### Individual Operations
+
 ```bash
 # Global configuration
 c2rust-config config --global --set compiler "gcc"
@@ -47,11 +66,9 @@ c2rust-config config --model --set api_key "your-api-key"
 c2rust-config config --model --set model_name "gpt-4"
 c2rust-config config --model --list
 
-# Make configuration (default feature)
+# Make configuration operations
 c2rust-config config --make --set build.dir "build"
 c2rust-config config --make --set build "make"
-c2rust-config config --make --set clean "make clean"
-c2rust-config config --make --set test "make test"
 c2rust-config config --make --list
 
 # Remove a key

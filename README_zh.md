@@ -36,6 +36,25 @@ c2rust-config config [模式] [操作] [键] [值...]
 
 ### 基本示例
 
+#### 完整配置示例
+
+以下是包含所有推荐默认值的完整配置设置：
+
+```bash
+# 设置全局配置
+c2rust-config config --global --set compiler "gcc"
+
+# 设置完整的构建配置（默认特性）
+c2rust-config config --make --set build.dir "build"
+c2rust-config config --make --set build "make"
+c2rust-config config --make --set clean.dir "build"
+c2rust-config config --make --set clean "make clean"
+c2rust-config config --make --set test.dir "build"
+c2rust-config config --make --set test "make test"
+```
+
+#### 单独操作
+
 ```bash
 # 全局配置
 c2rust-config config --global --set compiler "gcc"
@@ -47,11 +66,9 @@ c2rust-config config --model --set api_key "your-api-key"
 c2rust-config config --model --set model_name "gpt-4"
 c2rust-config config --model --list
 
-# 构建配置（默认特性）
+# 构建配置操作
 c2rust-config config --make --set build.dir "build"
 c2rust-config config --make --set build "make"
-c2rust-config config --make --set clean "make clean"
-c2rust-config config --make --set test "make test"
 c2rust-config config --make --list
 
 # 删除一个键
