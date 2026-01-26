@@ -307,7 +307,7 @@ fn test_complex_workflow() {
     
     // Set build command
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "build", "make"])
+        .args(&["config", "--make", "--set", "build.cmd", "make"])
         .assert()
         .success();
     
@@ -318,7 +318,7 @@ fn test_complex_workflow() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "clean", "make clean"])
+        .args(&["config", "--make", "--set", "clean.cmd", "make clean"])
         .assert()
         .success();
     
@@ -329,7 +329,7 @@ fn test_complex_workflow() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "test", "make test"])
+        .args(&["config", "--make", "--set", "test.cmd", "make test"])
         .assert()
         .success();
     
@@ -337,11 +337,11 @@ fn test_complex_workflow() {
     let config = read_config(&temp_dir);
     assert!(config.contains(r#"compiler = "gcc""#));
     assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
-    assert!(config.contains(r#"build = "make""#));
+    assert!(config.contains(r#""build.cmd" = "make""#) || config.contains(r#"build.cmd = "make""#));
     assert!(config.contains(r#""clean.dir" = "build""#) || config.contains(r#"clean.dir = "build""#));
-    assert!(config.contains(r#"clean = "make clean""#));
+    assert!(config.contains(r#""clean.cmd" = "make clean""#) || config.contains(r#"clean.cmd = "make clean""#));
     assert!(config.contains(r#""test.dir" = "build""#) || config.contains(r#"test.dir = "build""#));
-    assert!(config.contains(r#"test = "make test""#));
+    assert!(config.contains(r#""test.cmd" = "make test""#) || config.contains(r#"test.cmd = "make test""#));
 }
 
 #[test]
@@ -389,7 +389,7 @@ fn test_feature_complete_no_warning() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "build", "make"])
+        .args(&["config", "--make", "--set", "build.cmd", "make"])
         .assert()
         .success();
     
@@ -399,7 +399,7 @@ fn test_feature_complete_no_warning() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "clean", "make clean"])
+        .args(&["config", "--make", "--set", "clean.cmd", "make clean"])
         .assert()
         .success();
     
@@ -410,7 +410,7 @@ fn test_feature_complete_no_warning() {
     
     // Last one should have no warnings
     let output = get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "test", "make test"])
+        .args(&["config", "--make", "--set", "test.cmd", "make test"])
         .assert()
         .success()
         .get_output()
@@ -574,7 +574,7 @@ fn test_list_specific_key_single_value() {
         .success();
     
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--set", "clean", "make clean"])
+        .args(&["config", "--make", "--set", "clean.cmd", "make clean"])
         .assert()
         .success();
     
@@ -587,7 +587,7 @@ fn test_list_specific_key_single_value() {
     
     // List another specific key
     get_cmd(&temp_dir)
-        .args(&["config", "--make", "--list", "clean"])
+        .args(&["config", "--make", "--list", "clean.cmd"])
         .assert()
         .success()
         .stdout("make clean\n");

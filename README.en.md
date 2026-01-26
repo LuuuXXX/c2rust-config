@@ -46,11 +46,11 @@ c2rust-config config --global --set compiler "gcc"
 
 # Set up complete make configuration (default feature)
 c2rust-config config --make --set build.dir "build"
-c2rust-config config --make --set build "make"
+c2rust-config config --make --set build.cmd "make"
 c2rust-config config --make --set clean.dir "build"
-c2rust-config config --make --set clean "make clean"
+c2rust-config config --make --set clean.cmd "make clean"
 c2rust-config config --make --set test.dir "build"
-c2rust-config config --make --set test "make test"
+c2rust-config config --make --set test.cmd "make test"
 ```
 
 #### Individual Operations
@@ -68,7 +68,7 @@ c2rust-config config --model --list
 
 # Make configuration operations
 c2rust-config config --make --set build.dir "build"
-c2rust-config config --make --set build "make"
+c2rust-config config --make --set build.cmd "make"
 c2rust-config config --make --list
 
 # Remove a key
@@ -88,10 +88,10 @@ Features allow you to maintain multiple configurations for different build scena
 ```bash
 # Use a specific feature
 c2rust-config config --make --feature debug --set build.dir "debug_build"
-c2rust-config config --make --feature debug --set build "make DEBUG=1"
+c2rust-config config --make --feature debug --set build.cmd "make DEBUG=1"
 
 c2rust-config config --make --feature release --set build.dir "release_build"
-c2rust-config config --make --feature release --set build "make RELEASE=1"
+c2rust-config config --make --feature release --set build.cmd "make RELEASE=1"
 
 # List configuration for a specific feature
 c2rust-config config --make --feature debug --list
@@ -116,19 +116,19 @@ model_name = "gpt-4"
 [feature.default]
 # Paths are relative to the project root (the directory containing .c2rust)
 "clean.dir" = "build"
-clean = "make clean"
+"clean.cmd" = "make clean"
 "test.dir" = "build"
-test = "make test"
+"test.cmd" = "make test"
 "build.dir" = "build"
-build = "make"
+"build.cmd" = "make"
 
 [feature.debug]
 "build.dir" = "debug_build"
-build = "make DEBUG=1"
+"build.cmd" = "make DEBUG=1"
 "clean.dir" = "debug_build"
-clean = "make clean"
+"clean.cmd" = "make clean"
 "test.dir" = "debug_build"
-test = "make test"
+"test.cmd" = "make test"
 ```
 
 ## Requirements
@@ -162,11 +162,11 @@ The tool validates feature configurations and provides warnings for incomplete c
 
 **Complete Feature Configuration**: When configuring a feature with `--make`, all of the following keys should be set together for a complete configuration:
 - `clean.dir` - Directory to clean
-- `clean` - Clean command
+- `clean.cmd` - Clean command
 - `test.dir` - Directory for testing
-- `test` - Test command
+- `test.cmd` - Test command
 - `build.dir` - Directory for build output
-- `build` - Build command
+- `build.cmd` - Build command
 
 If some but not all of these keys are present, a warning will be displayed listing the missing keys.
 
@@ -174,15 +174,15 @@ Example:
 ```bash
 # Incomplete configuration - will show a warning
 c2rust-config config --make --set build.dir "build"
-# Warning: Feature 'feature.default' is missing required keys: clean.dir, clean, test.dir, test, build. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.
+# Warning: Feature 'feature.default' is missing required keys: clean.dir, clean.cmd, test.dir, test.cmd, build.cmd. All of [clean.dir, clean.cmd, test.dir, test.cmd, build.dir, build.cmd] should be configured together.
 
 # Complete configuration - no warning
 c2rust-config config --make --set build.dir "build"
-c2rust-config config --make --set build "make"
+c2rust-config config --make --set build.cmd "make"
 c2rust-config config --make --set clean.dir "build"
-c2rust-config config --make --set clean "make clean"
+c2rust-config config --make --set clean.cmd "make clean"
 c2rust-config config --make --set test.dir "build"
-c2rust-config config --make --set test "make test"
+c2rust-config config --make --set test.cmd "make test"
 ```
 
 ## Development

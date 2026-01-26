@@ -219,11 +219,11 @@ impl Config {
         // Required keys that must be configured together
         let required_keys = [
             "clean.dir",
-            "clean",
+            "clean.cmd",
             "test.dir",
-            "test",
+            "test.cmd",
             "build.dir",
-            "build",
+            "build.cmd",
         ];
 
         let mut missing_keys = Vec::new();
@@ -236,7 +236,7 @@ impl Config {
         // If some but not all required keys are present, warn about missing ones
         if !missing_keys.is_empty() && missing_keys.len() < required_keys.len() {
             warnings.push(format!(
-                "Warning: Feature '{}' is missing required keys: {}. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.",
+                "Warning: Feature '{}' is missing required keys: {}. All of [clean.dir, clean.cmd, test.dir, test.cmd, build.dir, build.cmd] should be configured together.",
                 section,
                 missing_keys.join(", ")
             ));
