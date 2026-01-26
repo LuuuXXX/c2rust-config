@@ -174,7 +174,7 @@ Example:
 ```bash
 # Incomplete configuration - will show a warning
 c2rust-config config --make --set build.dir "build"
-# Warning: Feature 'default' configuration is incomplete. Missing: clean.dir, clean, test.dir, test, build
+# Warning: Feature 'feature.default' is missing required keys: clean.dir, clean, test.dir, test, build. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.
 
 # Complete configuration - no warning
 c2rust-config config --make --set build.dir "build"

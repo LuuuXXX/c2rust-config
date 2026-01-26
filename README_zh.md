@@ -174,7 +174,7 @@ EOF
 ```bash
 # 不完整的配置 - 将显示警告
 c2rust-config config --make --set build.dir "build"
-# 警告：特性 'default' 配置不完整。缺少：clean.dir, clean, test.dir, test, build
+# Warning: Feature 'feature.default' is missing required keys: clean.dir, clean, test.dir, test, build. All of [clean.dir, clean, test.dir, test, build.dir, build] should be configured together.
 
 # 完整的配置 - 无警告
 c2rust-config config --make --set build.dir "build"
