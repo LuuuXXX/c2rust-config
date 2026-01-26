@@ -236,9 +236,10 @@ impl Config {
         // If some but not all required keys are present, warn about missing ones
         if !missing_keys.is_empty() && missing_keys.len() < required_keys.len() {
             warnings.push(format!(
-                "Warning: Feature '{}' is missing required keys: {}. All of [clean.dir, clean.cmd, test.dir, test.cmd, build.dir, build.cmd] should be configured together.",
+                "Warning: Feature '{}' is missing required keys: {}. All of [{}] should be configured together.",
                 section,
-                missing_keys.join(", ")
+                missing_keys.join(", "),
+                required_keys.join(", ")
             ));
         }
 
