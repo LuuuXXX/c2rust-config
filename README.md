@@ -77,6 +77,16 @@ c2rust-config config --make --unset build.dir
 # 数组操作
 c2rust-config config --make --add build.flags "-O2" "-Wall"
 c2rust-config config --make --del build.flags "-Wall"
+
+# 数组操作 - 自动类型转换和去重
+c2rust-config config --global --set compiler "gcc"       # 设置为字符串
+c2rust-config config --global --add compiler "clang"     # 自动转换为数组并添加
+c2rust-config config --global --add compiler "gcc"       # 去重：gcc已存在，不会重复添加
+c2rust-config config --global --list compiler            # 显示: gcc, clang
+
+# --add 操作的智能行为：
+# 1. 如果键是字符串，自动转换为数组
+# 2. 添加前自动检查重复，避免相同值多次出现
 ```
 
 ### 特性（Features）
