@@ -150,7 +150,7 @@ impl Config {
     fn value_to_strings(value: &toml::Value) -> Vec<String> {
         if let Some(array) = value.as_array() {
             array.iter()
-                .map(|item| item.as_str().unwrap_or(&item.to_string()).to_string())
+                .map(|item| item.as_str().map(String::from).unwrap_or_else(|| item.to_string()))
                 .collect()
         } else if let Some(s) = value.as_str() {
             vec![s.to_string()]
