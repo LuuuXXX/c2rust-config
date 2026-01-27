@@ -244,49 +244,5 @@ impl Config {
         Ok(())
     }
 
-    /// Validate that a feature has all required configuration keys
-    /// Returns warnings if any required keys are missing
-    pub fn validate_feature(&self, section: &str) -> Vec<String> {
-        let mut warnings = Vec::new();
-        
-        // Only validate feature sections, not global or model
-        if !section.starts_with("feature.") {
-            return warnings;
-        }
 
-        // Get the feature table
-        let table = match self.get_table(section) {
-            Ok(t) => t,
-            Err(_) => return warnings, // Section doesn't exist yet, no validation needed
-        };
-
-        // Required keys that must be configured together
-        let required_keys = [
-            "clean.dir",
-            "clean.cmd",
-            "test.dir",
-            "test.cmd",
-            "build.dir",
-            "build.cmd",
-        ];
-
-        let mut missing_keys = Vec::new();
-        for key in &required_keys {
-            if !table.contains_key(*key) {
-                missing_keys.push(*key);
-            }
-        }
-
-        // If some but not all required keys are present, warn about missing ones
-        if !missing_keys.is_empty() && missing_keys.len() < required_keys.len() {
-            warnings.push(format!(
-                "Warning: Feature '{}' is missing required keys: {}. All of [{}] should be configured together.",
-                section,
-                missing_keys.join(", "),
-                required_keys.join(", ")
-            ));
-        }
-
-        warnings
-    }
 }

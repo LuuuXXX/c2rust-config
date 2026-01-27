@@ -373,10 +373,10 @@ fn test_no_config_file() {
 }
 
 #[test]
-fn test_feature_incomplete_warning() {
+fn test_feature_incomplete_no_warning() {
     let temp_dir = setup_test_env();
     
-    // Set only build.dir, should warn about missing required keys
+    // Set only build.dir, should NOT warn about missing required keys
     let output = get_cmd(&temp_dir)
         .args(&["config", "--make", "--set", "build.dir", "build"])
         .assert()
@@ -386,8 +386,8 @@ fn test_feature_incomplete_warning() {
         .clone();
     
     let stderr = String::from_utf8(output).unwrap();
-    assert!(stderr.contains("Warning"));
-    assert!(stderr.contains("missing required keys"));
+    assert!(!stderr.contains("Warning"));
+    assert!(!stderr.contains("missing required keys"));
 }
 
 #[test]
