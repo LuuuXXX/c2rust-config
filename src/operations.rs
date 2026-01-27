@@ -10,12 +10,6 @@ pub enum Operation {
     List,
 }
 
-/// Helper function to save config
-fn save_config(config: &mut Config) -> Result<()> {
-    config.save()?;
-    Ok(())
-}
-
 pub fn execute(
     mut config: Config,
     operation: Operation,
@@ -26,19 +20,19 @@ pub fn execute(
     match operation {
         Operation::Set => {
             config.set(section, key, values)?;
-            save_config(&mut config)?;
+            config.save()?;
         }
         Operation::Unset => {
             config.unset(section, key)?;
-            save_config(&mut config)?;
+            config.save()?;
         }
         Operation::Add => {
             config.add(section, key, values)?;
-            save_config(&mut config)?;
+            config.save()?;
         }
         Operation::Del => {
             config.del(section, key, values)?;
-            save_config(&mut config)?;
+            config.save()?;
         }
         Operation::List => {
             // If a key is provided, only output that key's values
