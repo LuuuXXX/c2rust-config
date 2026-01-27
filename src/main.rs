@@ -76,16 +76,11 @@ fn main() {
 
 fn run() -> Result<(), ConfigError> {
     let cli = Cli::parse();
-
     let config = Config::load()?;
 
     match cli.command {
         Commands::Config(args) => {
-            // Manual validation for mutually exclusive mode flags
-            // Note: While clap groups prevent multiple modes from conflicting with each other
-            // (e.g., --global and --model together), we still need manual validation to ensure
-            // exactly one mode is selected, as clap boolean flags don't enforce "required"
-            // in the same way positional arguments do.
+            // Validate exactly one mode is selected
             let mode_count = [args.global, args.model, args.make].iter().filter(|&&x| x).count();
             if mode_count != 1 {
                 return Err(ConfigError::InvalidOperation(
@@ -93,9 +88,7 @@ fn run() -> Result<(), ConfigError> {
                 ));
             }
 
-            // Manual validation for mutually exclusive operation flags
-            // Same reasoning as above - clap groups prevent conflicts but don't enforce
-            // that at least one operation is selected when all are boolean flags.
+            // Validate exactly one operation is selected
             let op_count = [args.set, args.unset, args.add, args.del, args.list].iter().filter(|&&x| x).count();
             if op_count != 1 {
                 return Err(ConfigError::InvalidOperation(
@@ -103,27 +96,24 @@ fn run() -> Result<(), ConfigError> {
                 ));
             }
 
-            // Validate that --feature is only used with --make
-            // The clap `requires` attribute doesn't work correctly with boolean flags,
-            // so we validate this relationship manually.
+            // Validate --feature is only used with --make
             if args.feature.is_some() && !args.make {
                 return Err(ConfigError::InvalidOperation(
                     "--feature can only be used with --make".to_string(),
                 ));
             }
 
-            // Determine the section based on mode flags
+            // Determine the section
             let section = if args.global {
                 "global".to_string()
             } else if args.model {
                 "model".to_string()
             } else {
-                // args.make must be true due to validation above
                 let feature_name = args.feature.unwrap_or_else(|| "default".to_string()).to_lowercase();
                 format!("feature.{}", feature_name)
             };
 
-            // Determine which operation is active and execute it
+            // Determine and execute the operation
             let operation = if args.set {
                 Operation::Set
             } else if args.unset {
@@ -136,52 +126,21 @@ fn run() -> Result<(), ConfigError> {
                 Operation::List
             };
 
-            match operation {
-                Operation::Set => {
-                    let key = args.key.ok_or_else(|| {
-                        ConfigError::InvalidOperation("--set requires a key".to_string())
-                    })?;
-                    if args.values.is_empty() {
-                        return Err(ConfigError::InvalidOperation(
-                            "No values provided for set operation".to_string(),
-                        ));
-                    }
-                    operations::execute(config, Operation::Set, &section, &key, args.values)?;
-                }
-                Operation::Unset => {
-                    let key = args.key.ok_or_else(|| {
-                        ConfigError::InvalidOperation("--unset requires a key".to_string())
-                    })?;
-                    operations::execute(config, Operation::Unset, &section, &key, vec![])?;
-                }
-                Operation::Add => {
-                    let key = args.key.ok_or_else(|| {
-                        ConfigError::InvalidOperation("--add requires a key".to_string())
-                    })?;
-                    if args.values.is_empty() {
-                        return Err(ConfigError::InvalidOperation(
-                            "No values provided for add operation".to_string(),
-                        ));
-                    }
-                    operations::execute(config, Operation::Add, &section, &key, args.values)?;
-                }
-                Operation::Del => {
-                    let key = args.key.ok_or_else(|| {
-                        ConfigError::InvalidOperation("--del requires a key".to_string())
-                    })?;
-                    if args.values.is_empty() {
-                        return Err(ConfigError::InvalidOperation(
-                            "No values provided for del operation".to_string(),
-                        ));
-                    }
-                    operations::execute(config, Operation::Del, &section, &key, args.values)?;
-                }
-                Operation::List => {
-                    // --list supports an optional key parameter
-                    let key = args.key.unwrap_or_default();
-                    operations::execute(config, Operation::List, &section, &key, vec![])?;
-                }
+            // Validate operation-specific requirements
+            let key = match operation {
+                Operation::List => args.key.unwrap_or_default(),
+                _ => args.key.ok_or_else(|| {
+                    ConfigError::InvalidOperation(format!("--{:?} requires a key", operation).to_lowercase())
+                })?,
+            };
+
+            if matches!(operation, Operation::Set | Operation::Add | Operation::Del) && args.values.is_empty() {
+                return Err(ConfigError::InvalidOperation(
+                    format!("--{:?} requires at least one value", operation).to_lowercase(),
+                ));
             }
+
+            operations::execute(config, operation, &section, &key, args.values)?;
         }
     }
 

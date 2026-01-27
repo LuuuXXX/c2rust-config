@@ -146,64 +146,41 @@ impl Config {
         Err(ConfigError::InvalidOperation(format!("Invalid section: {}", section)))
     }
 
+    /// Convert a TOML value to a list of strings
+    fn value_to_strings(value: &toml::Value) -> Vec<String> {
+        if let Some(array) = value.as_array() {
+            array.iter()
+                .map(|item| item.as_str().unwrap_or(&item.to_string()).to_string())
+                .collect()
+        } else if let Some(s) = value.as_str() {
+            vec![s.to_string()]
+        } else {
+            vec![value.to_string()]
+        }
+    }
+
     /// List all keys and values in a section
     pub fn list_all(&self, section: &str) -> Result<Vec<(String, Vec<String>)>> {
         let table = self.get_table(section)?;
         
-        let mut results = Vec::new();
-        for (key, value) in table.iter() {
-            let mut values = Vec::new();
-            if let Some(array) = value.as_array() {
-                for item in array.iter() {
-                    if let Some(s) = item.as_str() {
-                        values.push(s.to_string());
-                    } else {
-                        // Convert non-string array elements to string representation
-                        values.push(item.to_string());
-                    }
+        Ok(table.iter()
+            .filter_map(|(key, value)| {
+                let values = Self::value_to_strings(value);
+                if values.is_empty() {
+                    None
+                } else {
+                    Some((key.clone(), values))
                 }
-            } else if let Some(s) = value.as_str() {
-                values.push(s.to_string());
-            } else {
-                // Handle other scalar value types (integer, float, boolean, datetime)
-                // by converting them to their string representation. Tables are
-                // flattened in Config::load(), so they should not appear here.
-                values.push(value.to_string());
-            }
-            if !values.is_empty() {
-                results.push((key.clone(), values));
-            }
-        }
-
-        Ok(results)
+            })
+            .collect())
     }
 
     /// Get values for a specific key in a section
     pub fn list(&self, section: &str, key: &str) -> Result<Vec<String>> {
         let table = self.get_table(section)?;
-        
         let value = table.get(key)
             .ok_or_else(|| ConfigError::KeyNotFound(key.to_string()))?;
-        
-        let mut values = Vec::new();
-        if let Some(array) = value.as_array() {
-            for item in array.iter() {
-                if let Some(s) = item.as_str() {
-                    values.push(s.to_string());
-                } else {
-                    // Convert non-string array elements to string representation
-                    values.push(item.to_string());
-                }
-            }
-        } else if let Some(s) = value.as_str() {
-            values.push(s.to_string());
-        } else {
-            // Handle other value types (integer, float, boolean, datetime, table)
-            // by converting them to their string representation
-            values.push(value.to_string());
-        }
-        
-        Ok(values)
+        Ok(Self::value_to_strings(value))
     }
 
     /// Set a key to one or more values

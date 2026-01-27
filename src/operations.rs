@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::error::Result;
 
+#[derive(Debug)]
 pub enum Operation {
     Set,
     Unset,
