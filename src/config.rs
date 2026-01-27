@@ -79,6 +79,7 @@ impl Config {
     }
 
     /// Load configuration from file
+    /// Auto-creates config.toml if it doesn't exist
     pub fn load() -> Result<Self> {
         let c2rust_dir = Self::find_c2rust_dir()?;
         let config_path = c2rust_dir.join("config.toml");
@@ -86,7 +87,10 @@ impl Config {
         let content = match fs::read_to_string(&config_path) {
             Ok(content) => content,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                return Err(ConfigError::ConfigFileNotFound);
+                // Auto-create config.toml with default sections including feature.default
+                let default_content = "[global]\n\n[model]\n\n[feature.default]\n";
+                fs::write(&config_path, default_content)?;
+                default_content.to_string()
             }
             Err(e) => return Err(e.into()),
         };
