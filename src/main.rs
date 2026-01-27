@@ -130,13 +130,15 @@ fn run() -> Result<(), ConfigError> {
             let key = match operation {
                 Operation::List => args.key.unwrap_or_default(),
                 _ => args.key.ok_or_else(|| {
-                    ConfigError::InvalidOperation(format!("--{:?} requires a key", operation).to_lowercase())
+                    let op_name = format!("{:?}", operation).to_lowercase();
+                    ConfigError::InvalidOperation(format!("--{} requires a key", op_name))
                 })?,
             };
 
             if matches!(operation, Operation::Set | Operation::Add | Operation::Del) && args.values.is_empty() {
+                let op_name = format!("{:?}", operation).to_lowercase();
                 return Err(ConfigError::InvalidOperation(
-                    format!("--{:?} requires at least one value", operation).to_lowercase(),
+                    format!("--{} requires at least one value", op_name),
                 ));
             }
 
