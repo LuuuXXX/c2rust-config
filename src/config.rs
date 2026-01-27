@@ -213,11 +213,25 @@ impl Config {
 
         let current = table.entry(key.to_string()).or_insert_with(|| toml::Value::Array(vec![]));
         
+        // Convert string to array if needed
+        if current.is_str() {
+            let str_value = current.as_str().unwrap().to_string();
+            *current = toml::Value::Array(vec![toml::Value::String(str_value)]);
+        }
+        
         let array = current.as_array_mut()
             .ok_or_else(|| ConfigError::InvalidOperation(format!("'{}' is not an array", key)))?;
 
+        // Add values with deduplication
         for value in values {
-            array.push(toml::Value::String(value));
+            // Check if value already exists in array
+            let exists = array.iter().any(|v| {
+                v.as_str().map(|s| s == value).unwrap_or(false)
+            });
+            
+            if !exists {
+                array.push(toml::Value::String(value));
+            }
         }
 
         Ok(())

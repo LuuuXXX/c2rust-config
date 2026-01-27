@@ -914,4 +914,109 @@ verbose = false
     assert!(config.contains(r#""build.options.verbose" = false"#) || config.contains(r#"build.options.verbose = false"#));
 }
 
+// ===== Tests for String to Array Conversion and Deduplication =====
+
+#[test]
+fn test_add_converts_string_to_array() {
+    let temp_dir = setup_test_env();
+    
+    // Set compiler as a string
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--set", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    // Add another compiler - should convert to array
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "clang"])
+        .assert()
+        .success();
+    
+    // List to verify both are present
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--global", "--list", "compiler"])
+        .output()
+        .unwrap();
+    
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    assert!(output_str.contains("gcc"));
+    assert!(output_str.contains("clang"));
+}
+
+#[test]
+fn test_add_deduplication() {
+    let temp_dir = setup_test_env();
+    
+    // Add compiler multiple times
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "clang", "gcc"])
+        .assert()
+        .success();
+    
+    // Verify gcc appears only once
+    let config = read_config(&temp_dir);
+    let gcc_count = config.matches("gcc").count();
+    assert_eq!(gcc_count, 1, "gcc should appear only once");
+    
+    let clang_count = config.matches("clang").count();
+    assert_eq!(clang_count, 1, "clang should appear only once");
+}
+
+#[test]
+fn test_add_string_to_array_with_deduplication() {
+    let temp_dir = setup_test_env();
+    
+    // Set compiler as a string
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--set", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    // Add gcc again - should not duplicate (string to array conversion + deduplication)
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "gcc"])
+        .assert()
+        .success();
+    
+    // Add clang - should be added
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "clang"])
+        .assert()
+        .success();
+    
+    // Add gcc and clang again - should not duplicate
+    get_cmd(&temp_dir)
+        .args(&["config", "--global", "--add", "compiler", "gcc", "clang"])
+        .assert()
+        .success();
+    
+    // Verify each compiler appears only once
+    let config = read_config(&temp_dir);
+    let gcc_count = config.matches("gcc").count();
+    assert_eq!(gcc_count, 1, "gcc should appear only once");
+    
+    let clang_count = config.matches("clang").count();
+    assert_eq!(clang_count, 1, "clang should appear only once");
+    
+    // Verify both are in the array
+    let output = get_cmd(&temp_dir)
+        .args(&["config", "--global", "--list", "compiler"])
+        .output()
+        .unwrap();
+    
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    assert!(output_str.contains("gcc"));
+    assert!(output_str.contains("clang"));
+}
+
 
