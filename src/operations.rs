@@ -10,16 +10,6 @@ pub enum Operation {
     List,
 }
 
-/// Helper function to save config and validate feature configuration
-fn save_and_validate(config: &mut Config, section: &str) -> Result<()> {
-    config.save()?;
-    let warnings = config.validate_feature(section);
-    for warning in warnings {
-        eprintln!("{}", warning);
-    }
-    Ok(())
-}
-
 pub fn execute(
     mut config: Config,
     operation: Operation,
@@ -30,19 +20,19 @@ pub fn execute(
     match operation {
         Operation::Set => {
             config.set(section, key, values)?;
-            save_and_validate(&mut config, section)?;
+            config.save()?;
         }
         Operation::Unset => {
             config.unset(section, key)?;
-            save_and_validate(&mut config, section)?;
+            config.save()?;
         }
         Operation::Add => {
             config.add(section, key, values)?;
-            save_and_validate(&mut config, section)?;
+            config.save()?;
         }
         Operation::Del => {
             config.del(section, key, values)?;
-            save_and_validate(&mut config, section)?;
+            config.save()?;
         }
         Operation::List => {
             // If a key is provided, only output that key's values
