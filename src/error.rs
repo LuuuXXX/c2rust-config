@@ -3,7 +3,6 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ConfigError {
     ConfigDirNotFound,
-    ConfigFileNotFound,
     FeatureNotFound(String),
     KeyNotFound(String),
     IoError(std::io::Error),
@@ -15,10 +14,7 @@ impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ConfigError::ConfigDirNotFound => {
-                write!(f, "Error: .c2rust directory not found. Please create it first.")
-            }
-            ConfigError::ConfigFileNotFound => {
-                write!(f, "Error: config.toml file not found in .c2rust directory")
+                write!(f, "错误：.c2rust 目录不存在，请先创建 .c2rust 目录")
             }
             ConfigError::FeatureNotFound(feature) => {
                 write!(f, "Error: feature '{}' not found in configuration", feature)

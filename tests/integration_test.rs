@@ -38,7 +38,7 @@ fn test_no_c2rust_directory() {
     
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains(".c2rust directory not found"));
+        .stderr(predicate::str::contains("错误：.c2rust 目录不存在，请先创建 .c2rust 目录"));
 }
 
 #[test]
@@ -349,15 +349,27 @@ fn test_no_config_file() {
     let temp_dir = TempDir::new().unwrap();
     let c2rust_dir = temp_dir.path().join(".c2rust");
     fs::create_dir(&c2rust_dir).unwrap();
-    // Don't create config.toml
+    // Don't create config.toml initially
     
+    let config_path = c2rust_dir.join("config.toml");
+    assert!(!config_path.exists(), "config.toml should not exist initially");
+    
+    // Run a command - should auto-create config.toml
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
     cmd.args(&["config", "--make", "--list"]);
     
     cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("config.toml file not found"));
+        .success();
+    
+    // Verify config.toml was auto-created
+    assert!(config_path.exists(), "config.toml should be auto-created");
+    
+    // Verify it has the default structure
+    let content = fs::read_to_string(&config_path).unwrap();
+    assert!(content.contains("[global]"));
+    assert!(content.contains("[model]"));
+    assert!(content.contains("[feature.default]"));
 }
 
 #[test]
