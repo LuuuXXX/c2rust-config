@@ -90,7 +90,7 @@ impl Config {
                 // Auto-create config.toml with default sections including feature.default
                 let default_content = "[global]\n\n[model]\n\n[feature.default]\n";
                 fs::write(&config_path, default_content)?;
-                default_content.to_string()
+                default_content.to_owned()
             }
             Err(e) => return Err(e.into()),
         };
