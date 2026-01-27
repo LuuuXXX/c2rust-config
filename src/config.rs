@@ -31,6 +31,53 @@ impl Config {
         }
     }
 
+    /// Flatten nested table structures into dotted keys (recursively)
+    /// Converts structures like:
+    ///   clean = Table({"cmd": "make clean", "dir": "build"})
+    /// Into:
+    ///   "clean.cmd" = "make clean", "clean.dir" = "build"
+    /// Also handles deeply nested structures:
+    ///   build = Table({"options": Table({"debug": true})})
+    /// Into:
+    ///   "build.options.debug" = true
+    fn flatten_table(table: &mut HashMap<String, toml::Value>) {
+        fn flatten_value(prefix: &str, value: &toml::Value, result: &mut HashMap<String, toml::Value>) {
+            if let Some(nested_table) = value.as_table() {
+                // Recursively flatten nested tables
+                for (nested_key, nested_value) in nested_table {
+                    let new_prefix = if prefix.is_empty() {
+                        nested_key.clone()
+                    } else {
+                        format!("{}.{}", prefix, nested_key)
+                    };
+                    flatten_value(&new_prefix, nested_value, result);
+                }
+            } else {
+                // Leaf value - add it to the result
+                result.insert(prefix.to_string(), value.clone());
+            }
+        }
+
+        let mut flattened = HashMap::new();
+        let mut keys_to_remove = Vec::new();
+
+        for (key, value) in table.iter() {
+            if value.as_table().is_some() {
+                // This is a nested table, flatten it recursively
+                keys_to_remove.push(key.clone());
+                flatten_value(key, value, &mut flattened);
+            }
+        }
+
+        // Remove the nested table keys
+        for key in keys_to_remove {
+            table.remove(&key);
+        }
+
+        // Add the flattened keys
+        table.extend(flattened);
+    }
+
     /// Load configuration from file
     pub fn load() -> Result<Self> {
         let c2rust_dir = Self::find_c2rust_dir()?;
@@ -44,7 +91,15 @@ impl Config {
             Err(e) => return Err(e.into()),
         };
 
-        let data: ConfigFile = toml::from_str(&content)?;
+        let mut data: ConfigFile = toml::from_str(&content)?;
+        
+        // Flatten nested structures in all sections
+        Self::flatten_table(&mut data.global);
+        Self::flatten_table(&mut data.model);
+        for (_, feature_table) in data.features.iter_mut() {
+            Self::flatten_table(feature_table);
+        }
+        
         Ok(Config { config_path, data })
     }
 
@@ -98,10 +153,18 @@ impl Config {
                 for item in array.iter() {
                     if let Some(s) = item.as_str() {
                         values.push(s.to_string());
+                    } else {
+                        // Convert non-string array elements to string representation
+                        values.push(item.to_string());
                     }
                 }
             } else if let Some(s) = value.as_str() {
                 values.push(s.to_string());
+            } else {
+                // Handle other scalar value types (integer, float, boolean, datetime)
+                // by converting them to their string representation. Tables are
+                // flattened in Config::load(), so they should not appear here.
+                values.push(value.to_string());
             }
             if !values.is_empty() {
                 results.push((key.clone(), values));
