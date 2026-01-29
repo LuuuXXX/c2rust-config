@@ -1048,15 +1048,25 @@ fn test_c2rust_project_root_env_var() {
 fn test_c2rust_project_root_env_var_invalid_path() {
     let temp_dir = TempDir::new().unwrap();
     
-    // Set the environment variable to a non-existent path
+    // Construct a guaranteed non-existent project root under the temp dir
+    let nonexistent_root = temp_dir.path().join("does_not_exist");
+    let expected_search_path = nonexistent_root.join(".c2rust");
+    
+    // Set the environment variable to the non-existent path
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
-    cmd.env("C2RUST_PROJECT_ROOT", "/nonexistent/path/that/does/not/exist");
+    cmd.env("C2RUST_PROJECT_ROOT", &nonexistent_root);
     cmd.args(&["config", "--make", "--list"]);
     
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("错误：.c2rust 目录不存在"));
+        .stderr(
+            predicate::str::contains("错误：.c2rust 目录不存在")
+                .and(predicate::str::contains("查找路径"))
+                .and(predicate::str::contains(
+                    expected_search_path.to_string_lossy().as_ref(),
+                )),
+        );
 }
 
 #[test]

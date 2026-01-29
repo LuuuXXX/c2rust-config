@@ -201,7 +201,9 @@ c2rust-config config --make --set build.dir "build"
 mkdir .c2rust
 
 # 或者使用环境变量指定的路径
-mkdir -p $C2RUST_PROJECT_ROOT/.c2rust
+# 确保已设置 C2RUST_PROJECT_ROOT 环境变量
+: "${C2RUST_PROJECT_ROOT:?请先设置 C2RUST_PROJECT_ROOT 为项目根目录}"
+mkdir -p "${C2RUST_PROJECT_ROOT}/.c2rust"
 ```
 
 - `config.toml` 文件会在首次运行工具时自动创建，包含默认的配置结构
