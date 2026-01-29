@@ -35,7 +35,7 @@ impl Config {
         if c2rust_path.exists() && c2rust_path.is_dir() {
             Ok(c2rust_path)
         } else {
-            Err(ConfigError::ConfigDirNotFound)
+            Err(ConfigError::ConfigDirNotFound(c2rust_path))
         }
     }
 

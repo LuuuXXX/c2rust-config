@@ -38,7 +38,7 @@ fn test_no_c2rust_directory() {
     
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("错误：.c2rust 目录不存在，请先创建 .c2rust 目录"));
+        .stderr(predicate::str::contains("错误：.c2rust 目录不存在"));
 }
 
 #[test]
@@ -1056,7 +1056,7 @@ fn test_c2rust_project_root_env_var_invalid_path() {
     
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("错误：.c2rust 目录不存在，请先创建 .c2rust 目录"));
+        .stderr(predicate::str::contains("错误：.c2rust 目录不存在"));
 }
 
 #[test]
