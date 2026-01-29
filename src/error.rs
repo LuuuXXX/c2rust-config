@@ -1,9 +1,8 @@
 use std::fmt;
-use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum ConfigError {
-    ConfigDirNotFound(PathBuf),
+    ConfigDirNotFound,
     FeatureNotFound(String),
     KeyNotFound(String),
     IoError(std::io::Error),
@@ -14,9 +13,8 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ConfigError::ConfigDirNotFound(path) => {
-                // Multi-line error message for better readability in CLI output
-                write!(f, "错误：.c2rust 目录不存在。\n查找路径：{}\n请先在项目根目录创建 .c2rust 目录", path.display())
+            ConfigError::ConfigDirNotFound => {
+                write!(f, "错误：.c2rust 目录不存在，请先创建 .c2rust 目录")
             }
             ConfigError::FeatureNotFound(feature) => {
                 write!(f, "Error: feature '{}' not found in configuration", feature)

@@ -146,64 +146,14 @@ model_name = "gpt-4"
 - 工具会自动处理键的格式，确保键的唯一性，无论文件中使用哪种格式
 - 保存配置时，工具会将带点的键自动加上引号以符合 TOML 规范
 
-## 环境变量
-
-### C2RUST_PROJECT_ROOT
-
-该工具支持通过 `C2RUST_PROJECT_ROOT` 环境变量指定项目根目录（包含 `.c2rust` 目录的目录）。
-
-**用途**：
-- 允许从任何目录运行工具，而无需先切换到项目目录
-- 便于在脚本和自动化工作流中使用
-- 支持在多个项目之间快速切换
-
-**使用方法**：
-
-```bash
-# 设置环境变量指向项目根目录
-export C2RUST_PROJECT_ROOT=/path/to/your/project
-
-# 现在可以从任何目录运行工具
-cd /some/other/directory
-c2rust-config config --make --list
-
-# 或者在单个命令中设置
-C2RUST_PROJECT_ROOT=/path/to/your/project c2rust-config config --global --set compiler "gcc"
-```
-
-**默认行为**：
-- 如果未设置 `C2RUST_PROJECT_ROOT` 环境变量，工具将使用当前工作目录作为项目根目录
-- 这保持了向后兼容性，现有的工作流程无需修改
-
-**示例**：
-
-```bash
-# 情况 1：使用环境变量（从任何目录访问配置）
-export C2RUST_PROJECT_ROOT=/home/user/my-c2rust-project
-cd /tmp
-c2rust-config config --make --set build.dir "build"
-# 配置将保存到 /home/user/my-c2rust-project/.c2rust/config.toml
-
-# 情况 2：不设置环境变量（使用当前目录）
-cd /home/user/my-c2rust-project
-c2rust-config config --make --set build.dir "build"
-# 配置将保存到当前目录下的 .c2rust/config.toml
-```
-
 ## 使用要求
 
-- 项目根目录（由 `C2RUST_PROJECT_ROOT` 指定或当前工作目录）中必须存在 `.c2rust` 目录
-- 工具不会遍历父目录查找 `.c2rust` 目录
+- 该工具仅在当前目录中搜索 `.c2rust` 目录（不会遍历父目录）
+- 运行工具之前，当前目录中必须存在 `.c2rust` 目录
 - 如果 `.c2rust` 目录不存在，请手动创建：
 
 ```bash
-# 在项目根目录中创建
 mkdir .c2rust
-
-# 或者使用环境变量指定的路径
-# 确保已设置 C2RUST_PROJECT_ROOT 环境变量
-: "${C2RUST_PROJECT_ROOT:?请先设置 C2RUST_PROJECT_ROOT 为项目根目录}"
-mkdir -p "${C2RUST_PROJECT_ROOT}/.c2rust"
 ```
 
 - `config.toml` 文件会在首次运行工具时自动创建，包含默认的配置结构
@@ -212,7 +162,7 @@ mkdir -p "${C2RUST_PROJECT_ROOT}/.c2rust"
 
 该工具提供清晰的分层错误消息：
 
-1. **缺少 `.c2rust` 目录**：如果在项目根目录（由 `C2RUST_PROJECT_ROOT` 指定或当前目录）中找不到 `.c2rust` 目录，则显示错误（中文提示）
+1. **缺少 `.c2rust` 目录**：如果当前目录中找不到 `.c2rust` 目录，则显示错误（中文提示）
 2. **特性未找到**：尝试访问不存在的特性时
 3. **键未找到**：尝试删除或访问不存在的键时
 4. **无效操作**：命令语法不正确时（例如缺少必需参数）

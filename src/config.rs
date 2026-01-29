@@ -20,22 +20,14 @@ pub struct Config {
 }
 
 impl Config {
-    /// Find .c2rust directory
-    /// First checks C2RUST_PROJECT_ROOT environment variable, then falls back to current directory
+    /// Find .c2rust directory in current directory
     fn find_c2rust_dir() -> Result<PathBuf> {
-        // Try to get project root from environment variable
-        let project_root = if let Ok(env_path) = std::env::var("C2RUST_PROJECT_ROOT") {
-            PathBuf::from(env_path)
-        } else {
-            // Fall back to current directory
-            std::env::current_dir()?
-        };
-        
-        let c2rust_path = project_root.join(".c2rust");
+        let current = std::env::current_dir()?;
+        let c2rust_path = current.join(".c2rust");
         if c2rust_path.exists() && c2rust_path.is_dir() {
             Ok(c2rust_path)
         } else {
-            Err(ConfigError::ConfigDirNotFound(c2rust_path))
+            Err(ConfigError::ConfigDirNotFound)
         }
     }
 
