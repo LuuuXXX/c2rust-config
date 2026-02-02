@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["c2rust", "config", "cli", "configuration", "toml"]
 categories = ["command-line-utilities", "config", "development-tools"]
 homepage = "https://github.com/LuuuXXX/c2rust-config"
-documentation = "https://github.com/LuuuXXX/c2rust-config"
+documentation = "https://docs.rs/c2rust-config"
 
 [[bin]]
 name = "c2rust-config"

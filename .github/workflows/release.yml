@@ -20,5 +20,27 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
+      - name: Verify tag matches Cargo.toml version
+        run: |
+          cargo_toml_version=$(grep -m1 '^version' Cargo.toml | sed -E 's/version *= *"([^"]+)"/\1/')
+          if [ -z "$cargo_toml_version" ]; then
+            echo "Error: Could not determine version from Cargo.toml"
+            exit 1
+          fi
+
+          tag_name="${GITHUB_REF_NAME:-${GITHUB_REF##*/}}"
+          tag_version="${tag_name#v}"
+
+          echo "Tag version: $tag_version"
+          echo "Cargo.toml version: $cargo_toml_version"
+
+          if [ "$cargo_toml_version" != "$tag_version" ]; then
+            echo "Error: Tag version ($tag_version) does not match Cargo.toml version ($cargo_toml_version)"
+            exit 1
+          fi
+
+      - name: Dry run publish
+        run: cargo publish --dry-run
+
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
