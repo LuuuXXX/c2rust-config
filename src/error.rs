@@ -16,7 +16,7 @@ impl fmt::Display for ConfigError {
         match self {
             ConfigError::ConfigDirNotFound(path) => {
                 // Multi-line error message for better readability in CLI output
-                write!(f, "错误：未能找到 .c2rust 目录。\n搜索起始路径：{}\n已向上遍历至根目录但未找到项目根目录。\n请在项目根目录创建 .c2rust 目录，或从项目目录内运行此工具。", path.display())
+                write!(f, "错误：未能找到 .c2rust 目录。\n搜索起始路径：{}\n已向上遍历至根目录但未找到项目根目录。\n请在项目根目录创建 .c2rust 目录。", path.display())
             }
             ConfigError::FeatureNotFound(feature) => {
                 write!(f, "Error: feature '{}' not found in configuration", feature)
