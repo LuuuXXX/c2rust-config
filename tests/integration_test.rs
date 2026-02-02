@@ -38,7 +38,7 @@ fn test_no_c2rust_directory() {
     
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("错误：.c2rust 目录不存在"));
+        .stderr(predicate::str::contains("错误：未能找到 .c2rust 目录"));
 }
 
 #[test]
@@ -1021,89 +1021,84 @@ fn test_add_string_to_array_with_deduplication() {
 
 
 
-// ===== Tests for C2RUST_PROJECT_ROOT Environment Variable =====
+// ===== Tests for Auto-Discovery of Project Root =====
 
 #[test]
-fn test_c2rust_project_root_env_var() {
+fn test_auto_discovery_from_current_dir() {
     let temp_dir = setup_test_env();
     
-    // Create a different working directory
-    let work_dir = TempDir::new().unwrap();
-    
-    // Set the environment variable to point to the temp_dir with .c2rust
+    // Running from directory with .c2rust should work
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
-    cmd.current_dir(work_dir.path());
-    cmd.env("C2RUST_PROJECT_ROOT", temp_dir.path());
+    cmd.current_dir(temp_dir.path());
     cmd.args(&["config", "--make", "--set", "build.dir", "build"]);
     
     cmd.assert()
         .success();
     
-    // Verify the config was written to the correct location
+    // Verify the config was written
     let config = read_config(&temp_dir);
     assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
 }
 
 #[test]
-fn test_c2rust_project_root_env_var_invalid_path() {
+fn test_auto_discovery_from_subdirectory() {
+    let temp_dir = setup_test_env();
+    
+    // Create a nested subdirectory structure
+    let subdir = temp_dir.path().join("src").join("modules");
+    fs::create_dir_all(&subdir).unwrap();
+    
+    // Running from subdirectory should find .c2rust in parent
+    let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
+    cmd.current_dir(&subdir);
+    cmd.args(&["config", "--make", "--set", "build.dir", "build"]);
+    
+    cmd.assert()
+        .success();
+    
+    // Verify the config was written to the project root
+    let config = read_config(&temp_dir);
+    assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
+}
+
+#[test]
+fn test_auto_discovery_not_found() {
     let temp_dir = TempDir::new().unwrap();
     
-    // Construct a guaranteed non-existent project root under the temp dir
-    let nonexistent_root = temp_dir.path().join("does_not_exist");
-    let expected_search_path = nonexistent_root.join(".c2rust");
-    
-    // Set the environment variable to the non-existent path
+    // Don't create .c2rust directory, so auto-discovery should fail
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
     cmd.current_dir(temp_dir.path());
-    cmd.env("C2RUST_PROJECT_ROOT", &nonexistent_root);
     cmd.args(&["config", "--make", "--list"]);
     
     cmd.assert()
         .failure()
         .stderr(
-            predicate::str::contains("错误：.c2rust 目录不存在")
-                .and(predicate::str::contains("查找路径"))
-                .and(predicate::str::contains(
-                    expected_search_path.to_string_lossy().as_ref(),
-                )),
+            predicate::str::contains("错误：未能找到 .c2rust 目录")
+                .and(predicate::str::contains("搜索起始路径"))
+                .and(predicate::str::contains("已向上遍历至根目录但未找到项目根目录")),
         );
 }
 
 #[test]
-fn test_c2rust_project_root_fallback_to_current_dir() {
+fn test_auto_discovery_list_operation() {
     let temp_dir = setup_test_env();
     
-    // Don't set C2RUST_PROJECT_ROOT, should use current directory
+    // Create a subdirectory
+    let subdir = temp_dir.path().join("subdir");
+    fs::create_dir(&subdir).unwrap();
+    
+    // First, set some config from subdirectory
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
-    cmd.current_dir(temp_dir.path());
-    // Explicitly remove the env var if it exists
-    cmd.env_remove("C2RUST_PROJECT_ROOT");
-    cmd.args(&["config", "--make", "--set", "build.dir", "build"]);
-    
-    cmd.assert()
-        .success();
-    
-    // Verify the config was written to current directory
-    let config = read_config(&temp_dir);
-    assert!(config.contains(r#""build.dir" = "build""#) || config.contains(r#"build.dir = "build""#));
-}
-
-#[test]
-fn test_c2rust_project_root_list_operation() {
-    let temp_dir = setup_test_env();
-    let work_dir = TempDir::new().unwrap();
-    
-    // First, set some config using env var
-    let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
-    cmd.current_dir(work_dir.path());
-    cmd.env("C2RUST_PROJECT_ROOT", temp_dir.path());
+    cmd.current_dir(&subdir);
     cmd.args(&["config", "--global", "--set", "compiler", "gcc"]);
     cmd.assert().success();
     
-    // Now, list the config using env var from a different directory
+    // Now, list the config from another subdirectory
+    let another_subdir = temp_dir.path().join("another");
+    fs::create_dir(&another_subdir).unwrap();
+    
     let mut cmd = Command::cargo_bin("c2rust-config").unwrap();
-    cmd.current_dir(work_dir.path());
-    cmd.env("C2RUST_PROJECT_ROOT", temp_dir.path());
+    cmd.current_dir(&another_subdir);
     cmd.args(&["config", "--global", "--list"]);
     
     cmd.assert()
