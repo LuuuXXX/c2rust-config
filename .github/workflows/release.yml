@@ -22,9 +22,9 @@ jobs:
 
       - name: Verify tag matches Cargo.toml version
         run: |
-          cargo_toml_version=$(grep -m1 '^version\s*=' Cargo.toml | sed -E 's/version *= *"([^"]+)"/\1/')
+          cargo_toml_version=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[] | select(.name == "c2rust-config") | .version')
           if [ -z "$cargo_toml_version" ]; then
-            echo "Error: Could not determine version from Cargo.toml"
+            echo "Error: Could not extract version from Cargo.toml. Please verify the version field format."
             exit 1
           fi
 
