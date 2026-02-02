@@ -20,22 +20,26 @@ pub struct Config {
 }
 
 impl Config {
-    /// Find .c2rust directory
-    /// First checks C2RUST_PROJECT_ROOT environment variable, then falls back to current directory
+    /// Find .c2rust directory by traversing up from current directory
+    /// Searches from current working directory up to root, looking for .c2rust directory
     fn find_c2rust_dir() -> Result<PathBuf> {
-        // Try to get project root from environment variable
-        let project_root = if let Ok(env_path) = std::env::var("C2RUST_PROJECT_ROOT") {
-            PathBuf::from(env_path)
-        } else {
-            // Fall back to current directory
-            std::env::current_dir()?
-        };
+        let search_start = std::env::current_dir()?;
+        let mut current = search_start.clone();
         
-        let c2rust_path = project_root.join(".c2rust");
-        if c2rust_path.exists() && c2rust_path.is_dir() {
-            Ok(c2rust_path)
-        } else {
-            Err(ConfigError::ConfigDirNotFound(c2rust_path))
+        loop {
+            let c2rust_path = current.join(".c2rust");
+            if c2rust_path.exists() && c2rust_path.is_dir() {
+                return Ok(c2rust_path);
+            }
+            
+            // Try to move to parent directory
+            match current.parent() {
+                Some(parent) => current = parent.to_path_buf(),
+                None => {
+                    // Reached root without finding .c2rust directory
+                    return Err(ConfigError::ConfigDirNotFound(search_start));
+                }
+            }
         }
     }
 
