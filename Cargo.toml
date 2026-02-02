@@ -2,6 +2,15 @@
 name = "c2rust-config"
 version = "0.1.0"
 edition = "2021"
+authors = ["LuuuXXX <luuux98@163.com>"]
+description = "A Rust configuration management tool for c2rust translation work"
+license = "MIT"
+repository = "https://github.com/LuuuXXX/c2rust-config"
+readme = "README.md"
+keywords = ["c2rust", "config", "cli", "configuration", "toml"]
+categories = ["command-line-utilities", "config", "development-tools"]
+homepage = "https://github.com/LuuuXXX/c2rust-config"
+documentation = "https://github.com/LuuuXXX/c2rust-config"
 
 [[bin]]
 name = "c2rust-config"
