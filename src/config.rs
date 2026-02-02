@@ -23,7 +23,8 @@ impl Config {
     /// Find .c2rust directory by traversing up from current directory
     /// Searches from current working directory up to root, looking for .c2rust directory
     fn find_c2rust_dir() -> Result<PathBuf> {
-        let mut current = std::env::current_dir()?;
+        let search_start = std::env::current_dir()?;
+        let mut current = search_start.clone();
         
         loop {
             let c2rust_path = current.join(".c2rust");
@@ -36,7 +37,6 @@ impl Config {
                 Some(parent) => current = parent.to_path_buf(),
                 None => {
                     // Reached root without finding .c2rust directory
-                    let search_start = std::env::current_dir()?;
                     return Err(ConfigError::ConfigDirNotFound(search_start));
                 }
             }
